@@ -1,0 +1,1 @@
+import { Navigate } from 'react-router-dom';import { useAuth } from '../auth/AuthProvider';import { AppShell } from './AppShell';export function ProtectedRoute(){const{user,loading}=useAuth();if(loading)return <div className="center">Loading StudyForge…</div>;return user?<AppShell/>:<Navigate to="/login" replace/>}

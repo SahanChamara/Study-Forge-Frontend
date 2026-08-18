@@ -1,24 +1,24 @@
 import type { LearningPath, Note, PracticeTask, Topic } from '../types';
 
 let paths: LearningPath[] = [];
-let notes: Note[] = [];
-let tasks: PracticeTask[] = [];
+const notes: Note[] = [];
+const tasks: PracticeTask[] = [];
 let seq = 1;
 const id = (prefix: string) => `${prefix}-${seq++}`;
 
 const linuxModules = [
-  { id: 'm-linux-1', title: 'Linux Foundations', description: 'Architecture, shell, filesystem and core command-line habits.', order: 1 },
-  { id: 'm-linux-2', title: 'Users, Permissions & Processes', description: 'Identity, access, jobs and process control.', order: 2 },
-  { id: 'm-linux-3', title: 'Networking, Services & Troubleshooting', description: 'Networking, systemd, logs, SSH and production-style diagnosis.', order: 3 },
+  { id: 'm-linux-1', pathId: 'linux-devops', title: 'Linux Foundations', description: 'Architecture, shell, filesystem and core command-line habits.', order: 1 },
+  { id: 'm-linux-2', pathId: 'linux-devops', title: 'Users, Permissions & Processes', description: 'Identity, access, jobs and process control.', order: 2 },
+  { id: 'm-linux-3', pathId: 'linux-devops', title: 'Networking, Services & Troubleshooting', description: 'Networking, systemd, logs, SSH and production-style diagnosis.', order: 3 },
 ];
 const linuxTopics: Topic[] = [
-  { id: 't-linux-1', moduleId: 'm-linux-1', title: 'Linux architecture', objective: 'Explain kernel, user space, shell, processes and filesystem responsibilities.', estimatedMinutes: 45, order: 1, status: 'mastered', mastery: 4, resourceUrls: [] },
-  { id: 't-linux-2', moduleId: 'm-linux-1', title: 'Filesystem hierarchy', objective: 'Navigate and explain important Linux filesystem locations.', estimatedMinutes: 60, order: 2, status: 'practicing', mastery: 3, resourceUrls: [] },
-  { id: 't-linux-3', moduleId: 'm-linux-1', title: 'Shell and command composition', objective: 'Use pipes, redirects, help systems and command composition confidently.', estimatedMinutes: 75, order: 3, status: 'learning', mastery: 2, resourceUrls: [] },
-  { id: 't-linux-4', moduleId: 'm-linux-2', title: 'Users, groups and permissions', objective: 'Manage ownership and permissions and troubleshoot access failures.', estimatedMinutes: 90, order: 1, status: 'not_started', mastery: 0, resourceUrls: [] },
-  { id: 't-linux-5', moduleId: 'm-linux-2', title: 'Processes and jobs', objective: 'Inspect, prioritize, signal and troubleshoot Linux processes.', estimatedMinutes: 75, order: 2, status: 'not_started', mastery: 0, resourceUrls: [] },
-  { id: 't-linux-6', moduleId: 'm-linux-3', title: 'systemd and logs', objective: 'Operate services and diagnose failures using systemd and journal logs.', estimatedMinutes: 90, order: 1, status: 'not_started', mastery: 0, resourceUrls: [] },
-  { id: 't-linux-7', moduleId: 'm-linux-3', title: 'Networking and SSH', objective: 'Inspect connectivity, ports, DNS and secure remote access.', estimatedMinutes: 120, order: 2, status: 'not_started', mastery: 0, resourceUrls: [] },
+  { id: 't-linux-1', moduleId: 'm-linux-1', pathId: 'linux-devops', title: 'Linux architecture', objective: 'Explain kernel, user space, shell, processes and filesystem responsibilities.', estimatedMinutes: 45, order: 1, status: 'mastered', mastery: 4, resourceUrls: [] },
+  { id: 't-linux-2', moduleId: 'm-linux-1', pathId: 'linux-devops', title: 'Filesystem hierarchy', objective: 'Navigate and explain important Linux filesystem locations.', estimatedMinutes: 60, order: 2, status: 'practicing', mastery: 3, resourceUrls: [] },
+  { id: 't-linux-3', moduleId: 'm-linux-1', pathId: 'linux-devops', title: 'Shell and command composition', objective: 'Use pipes, redirects, help systems and command composition confidently.', estimatedMinutes: 75, order: 3, status: 'learning', mastery: 2, resourceUrls: [] },
+  { id: 't-linux-4', moduleId: 'm-linux-2', pathId: 'linux-devops', title: 'Users, groups and permissions', objective: 'Manage ownership and permissions and troubleshoot access failures.', estimatedMinutes: 90, order: 1, status: 'not_started', mastery: 0, resourceUrls: [] },
+  { id: 't-linux-5', moduleId: 'm-linux-2', pathId: 'linux-devops', title: 'Processes and jobs', objective: 'Inspect, prioritize, signal and troubleshoot Linux processes.', estimatedMinutes: 75, order: 2, status: 'not_started', mastery: 0, resourceUrls: [] },
+  { id: 't-linux-6', moduleId: 'm-linux-3', pathId: 'linux-devops', title: 'systemd and logs', objective: 'Operate services and diagnose failures using systemd and journal logs.', estimatedMinutes: 90, order: 1, status: 'not_started', mastery: 0, resourceUrls: [] },
+  { id: 't-linux-7', moduleId: 'm-linux-3', pathId: 'linux-devops', title: 'Networking and SSH', objective: 'Inspect connectivity, ports, DNS and secure remote access.', estimatedMinutes: 120, order: 2, status: 'not_started', mastery: 0, resourceUrls: [] },
 ];
 
 function linuxPath(pathId = 'linux-devops'): LearningPath {

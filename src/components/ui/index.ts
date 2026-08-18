@@ -6,3 +6,5 @@ export * from './Skeleton';
 export * from './EmptyState';
 export * from './Alert';
 export * from './Spinner';
+export * from './Modal';
+export * from './ProgressBar';

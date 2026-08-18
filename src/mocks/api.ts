@@ -1,16 +1,17 @@
-import type { LearningPath, Note, PracticeTask, Topic } from '../types';
+import type { LearningPath, ModuleItem, Note, PracticeTask, Topic } from '../types';
 
 let paths: LearningPath[] = [];
 const notes: Note[] = [];
 const tasks: PracticeTask[] = [];
-let seq = 1;
+let seq = 100;
 const id = (prefix: string) => `${prefix}-${seq++}`;
 
-const linuxModules = [
+const linuxModules: ModuleItem[] = [
   { id: 'm-linux-1', pathId: 'linux-devops', title: 'Linux Foundations', description: 'Architecture, shell, filesystem and core command-line habits.', order: 1 },
   { id: 'm-linux-2', pathId: 'linux-devops', title: 'Users, Permissions & Processes', description: 'Identity, access, jobs and process control.', order: 2 },
   { id: 'm-linux-3', pathId: 'linux-devops', title: 'Networking, Services & Troubleshooting', description: 'Networking, systemd, logs, SSH and production-style diagnosis.', order: 3 },
 ];
+
 const linuxTopics: Topic[] = [
   { id: 't-linux-1', moduleId: 'm-linux-1', pathId: 'linux-devops', title: 'Linux architecture', objective: 'Explain kernel, user space, shell, processes and filesystem responsibilities.', estimatedMinutes: 45, order: 1, status: 'mastered', mastery: 4, resourceUrls: [] },
   { id: 't-linux-2', moduleId: 'm-linux-1', pathId: 'linux-devops', title: 'Filesystem hierarchy', objective: 'Navigate and explain important Linux filesystem locations.', estimatedMinutes: 60, order: 2, status: 'practicing', mastery: 3, resourceUrls: [] },
@@ -21,103 +22,282 @@ const linuxTopics: Topic[] = [
   { id: 't-linux-7', moduleId: 'm-linux-3', pathId: 'linux-devops', title: 'Networking and SSH', objective: 'Inspect connectivity, ports, DNS and secure remote access.', estimatedMinutes: 120, order: 2, status: 'not_started', mastery: 0, resourceUrls: [] },
 ];
 
-function linuxPath(pathId = 'linux-devops'): LearningPath {
+function createLinuxPath(pathId = 'linux-devops'): LearningPath {
   return {
     id: pathId,
     title: 'Linux for DevOps',
-    description: 'A structured path from Linux foundations to practical DevOps operations.',
-    goal: 'Operate, automate, secure and troubleshoot Linux confidently.',
+    description: 'A structured curriculum from Linux foundations to practical production operations.',
+    goal: 'Operate, automate, secure and troubleshoot Linux servers with confidence.',
     targetLevel: 'job-ready',
+    createdAt: new Date(Date.now() - 7 * 86400000).toISOString(),
     updatedAt: new Date().toISOString(),
     modules: structuredClone(linuxModules),
     topics: structuredClone(linuxTopics),
+    progressPercent: 42,
   };
 }
 
-paths = [linuxPath()];
+paths = [createLinuxPath()];
 
 function parseBody(options: RequestInit) {
   if (!options.body) return {};
   return typeof options.body === 'string' ? JSON.parse(options.body) : options.body;
 }
 
+function calculatePathProgress(path: LearningPath): number {
+  if (!path.topics || path.topics.length === 0) return 0;
+  const masteredCount = path.topics.filter((t) => t.status === 'mastered').length;
+  const inProgressCount = path.topics.filter((t) => ['learning', 'practicing', 'review'].includes(t.status)).length;
+  return Math.round(((masteredCount * 1.0 + inProgressCount * 0.5) / path.topics.length) * 100);
+}
+
 export async function mockApi<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
-  await new Promise((resolve) => setTimeout(resolve, 100));
+  await new Promise((resolve) => setTimeout(resolve, 80));
   const method = (options.method ?? 'GET').toUpperCase();
   const url = new URL(path, 'http://mock.local');
   const pathname = url.pathname;
 
+  // Dashboard endpoint
   if (method === 'GET' && pathname === '/dashboard') {
-    const topics = paths.flatMap((p) => p.topics ?? []);
+    const allTopics = paths.flatMap((p) => p.topics ?? []);
+    const masteredCount = allTopics.filter((t) => t.status === 'mastered').length;
+    const inProgressTopics = allTopics.filter((t) => ['learning', 'practicing', 'review'].includes(t.status));
+    
+    // Find active topic (first topic that is practicing or learning)
+    const activeTopic = inProgressTopics[0] || (allTopics.length > 0 ? allTopics[0] : null);
+    const activePath = activeTopic ? paths.find((p) => p.id === activeTopic.pathId) : null;
+
     return {
       paths: paths.length,
-      topics: topics.length,
-      mastered: topics.filter((t) => t.status === 'mastered').length,
-      inProgress: topics.filter((t) => ['learning', 'practicing', 'review'].includes(t.status)).length,
+      topics: allTopics.length,
+      mastered: masteredCount,
+      inProgress: inProgressTopics.length,
       notes: notes.length,
       completedPractice: tasks.filter((t) => t.status === 'done').length,
+      pendingReviews: allTopics.filter((t) => t.status === 'review' || (t.mastery > 0 && t.mastery < 4)).length,
+      activeTopic: activeTopic ? {
+        ...activeTopic,
+        pathTitle: activePath?.title || 'Learning Path',
+      } : null,
     } as T;
   }
 
-  if (pathname === '/learning-paths' && method === 'GET') return structuredClone(paths) as T;
-  if (pathname === '/learning-paths' && method === 'POST') {
-    const body = parseBody(options) as Partial<LearningPath>;
-    const created: LearningPath = { id: id('path'), title: body.title ?? 'Untitled path', description: body.description ?? '', goal: body.goal ?? '', targetLevel: body.targetLevel ?? 'practical', updatedAt: new Date().toISOString(), modules: [], topics: [] };
-    paths.push(created); return structuredClone(created) as T;
+  // Learning Paths List
+  if (pathname === '/learning-paths' && method === 'GET') {
+    return paths.map((p) => ({
+      ...p,
+      progressPercent: calculatePathProgress(p),
+    })) as T;
   }
 
-  const seed = pathname.match(/^\/learning-paths\/([^/]+)\/seed\/linux-devops$/);
-  if (seed && method === 'POST') {
-    const idx = paths.findIndex((p) => p.id === seed[1]);
+  // Create Learning Path
+  if (pathname === '/learning-paths' && method === 'POST') {
+    const body = parseBody(options) as Partial<LearningPath> & { seedTemplate?: string };
+    const newId = id('path');
+    let newModules: ModuleItem[] = [];
+    let newTopics: Topic[] = [];
+
+    if (body.seedTemplate === 'linux-devops') {
+      newModules = structuredClone(linuxModules).map((m) => ({ ...m, pathId: newId }));
+      newTopics = structuredClone(linuxTopics).map((t) => ({ ...t, pathId: newId, status: 'not_started' as const, mastery: 0 as const }));
+    }
+
+    const created: LearningPath = {
+      id: newId,
+      title: body.title || 'Untitled Path',
+      description: body.description || '',
+      goal: body.goal || 'Build practical working proficiency',
+      targetLevel: body.targetLevel || 'practical',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      modules: newModules,
+      topics: newTopics,
+      progressPercent: 0,
+    };
+    paths.push(created);
+    return structuredClone(created) as T;
+  }
+
+  // Seed Linux DevOps Path
+  const seedMatch = pathname.match(/^\/learning-paths\/([^/]+)\/seed\/linux-devops$/);
+  if (seedMatch && method === 'POST') {
+    const targetPathId = seedMatch[1];
+    const idx = paths.findIndex((p) => p.id === targetPathId);
     if (idx < 0) throw new Error('Learning path not found');
-    paths[idx] = { ...paths[idx], modules: structuredClone(linuxModules), topics: structuredClone(linuxTopics), updatedAt: new Date().toISOString() };
+
+    const seededModules: ModuleItem[] = structuredClone(linuxModules).map((m) => ({ ...m, pathId: targetPathId }));
+    const seededTopics: Topic[] = structuredClone(linuxTopics).map((t) => ({ ...t, pathId: targetPathId, status: 'not_started' as const, mastery: 0 as const }));
+
+    paths[idx] = {
+      ...paths[idx],
+      modules: seededModules,
+      topics: seededTopics,
+      updatedAt: new Date().toISOString(),
+      progressPercent: 0,
+    };
     return structuredClone(paths[idx]) as T;
   }
 
+  // Create Module in Path
+  const moduleCreateMatch = pathname.match(/^\/learning-paths\/([^/]+)\/modules$/);
+  if (moduleCreateMatch && method === 'POST') {
+    const pathId = moduleCreateMatch[1];
+    const pathItem = paths.find((p) => p.id === pathId);
+    if (!pathItem) throw new Error('Learning path not found');
+
+    const body = parseBody(options) as Partial<ModuleItem>;
+    const newModule: ModuleItem = {
+      id: id('mod'),
+      pathId,
+      title: body.title || 'New Module',
+      description: body.description || '',
+      order: (pathItem.modules?.length || 0) + 1,
+    };
+
+    if (!pathItem.modules) pathItem.modules = [];
+    pathItem.modules.push(newModule);
+    pathItem.updatedAt = new Date().toISOString();
+    return structuredClone(newModule) as T;
+  }
+
+  // Create Topic in Path
+  const topicCreateMatch = pathname.match(/^\/learning-paths\/([^/]+)\/topics$/);
+  if (topicCreateMatch && method === 'POST') {
+    const pathId = topicCreateMatch[1];
+    const pathItem = paths.find((p) => p.id === pathId);
+    if (!pathItem) throw new Error('Learning path not found');
+
+    const body = parseBody(options) as Partial<Topic>;
+    const targetModuleId = body.moduleId || (pathItem.modules?.[0]?.id ?? 'default-mod');
+
+    const newTopic: Topic = {
+      id: id('top'),
+      pathId,
+      moduleId: targetModuleId,
+      title: body.title || 'New Topic',
+      objective: body.objective || '',
+      estimatedMinutes: Number(body.estimatedMinutes) || 45,
+      order: (pathItem.topics?.filter((t) => t.moduleId === targetModuleId).length || 0) + 1,
+      status: 'not_started',
+      mastery: 0,
+      resourceUrls: body.resourceUrls || [],
+    };
+
+    if (!pathItem.topics) pathItem.topics = [];
+    pathItem.topics.push(newTopic);
+    pathItem.updatedAt = new Date().toISOString();
+    return structuredClone(newTopic) as T;
+  }
+
+  // Topic Patch (Status / Mastery update)
   const topicPatch = pathname.match(/^\/learning-paths\/([^/]+)\/topics\/([^/]+)$/);
   if (topicPatch && method === 'PATCH') {
     const pathItem = paths.find((p) => p.id === topicPatch[1]);
     const topic = pathItem?.topics?.find((t) => t.id === topicPatch[2]);
     if (!topic) throw new Error('Topic not found');
+
     Object.assign(topic, parseBody(options));
+    if (pathItem) {
+      pathItem.updatedAt = new Date().toISOString();
+      pathItem.progressPercent = calculatePathProgress(pathItem);
+    }
     return structuredClone(topic) as T;
   }
 
-  const pathGet = pathname.match(/^\/learning-paths\/([^/]+)$/);
-  if (pathGet && method === 'GET') {
-    const item = paths.find((p) => p.id === pathGet[1]);
-    if (!item) throw new Error('Learning path not found');
-    return structuredClone(item) as T;
+  // Single Path Detail (GET, PATCH, DELETE)
+  const pathDetailMatch = pathname.match(/^\/learning-paths\/([^/]+)$/);
+  if (pathDetailMatch) {
+    const pathId = pathDetailMatch[1];
+    const idx = paths.findIndex((p) => p.id === pathId);
+
+    if (method === 'GET') {
+      if (idx < 0) throw new Error('Learning path not found');
+      const item = paths[idx];
+      return {
+        ...item,
+        progressPercent: calculatePathProgress(item),
+      } as T;
+    }
+
+    if (method === 'PATCH') {
+      if (idx < 0) throw new Error('Learning path not found');
+      const body = parseBody(options) as Partial<LearningPath>;
+      paths[idx] = {
+        ...paths[idx],
+        ...body,
+        updatedAt: new Date().toISOString(),
+      };
+      return structuredClone(paths[idx]) as T;
+    }
+
+    if (method === 'DELETE') {
+      if (idx < 0) throw new Error('Learning path not found');
+      paths.splice(idx, 1);
+      return { success: true } as T;
+    }
   }
 
+  // Notes endpoints
   if (pathname === '/notes' && method === 'GET') {
-    const pathId = url.searchParams.get('pathId'); const topicId = url.searchParams.get('topicId');
-    return structuredClone(notes.filter((n) => (!pathId || n.pathId === pathId) && (!topicId || n.topicId === topicId))) as T;
+    const pathId = url.searchParams.get('pathId');
+    const topicId = url.searchParams.get('topicId');
+    return structuredClone(
+      notes.filter((n) => (!pathId || n.pathId === pathId) && (!topicId || n.topicId === topicId))
+    ) as T;
   }
   if (pathname === '/notes' && method === 'POST') {
     const body = parseBody(options) as Partial<Note>;
-    const created: Note = { id: id('note'), pathId: body.pathId ?? '', topicId: body.topicId ?? '', title: body.title ?? 'Topic note', contentMarkdown: body.contentMarkdown ?? '', tags: body.tags ?? [], updatedAt: new Date().toISOString() };
-    notes.push(created); return structuredClone(created) as T;
+    const created: Note = {
+      id: id('note'),
+      pathId: body.pathId || '',
+      topicId: body.topicId || '',
+      title: body.title || 'Topic Note',
+      contentMarkdown: body.contentMarkdown || '',
+      tags: body.tags || [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    notes.push(created);
+    return structuredClone(created) as T;
   }
   const notePatch = pathname.match(/^\/notes\/([^/]+)$/);
   if (notePatch && method === 'PATCH') {
-    const note = notes.find((n) => n.id === notePatch[1]); if (!note) throw new Error('Note not found');
-    Object.assign(note, parseBody(options), { updatedAt: new Date().toISOString() }); return structuredClone(note) as T;
+    const note = notes.find((n) => n.id === notePatch[1]);
+    if (!note) throw new Error('Note not found');
+    Object.assign(note, parseBody(options), { updatedAt: new Date().toISOString() });
+    return structuredClone(note) as T;
   }
 
+  // Practice endpoints
   if (pathname === '/practice' && method === 'GET') {
-    const pathId = url.searchParams.get('pathId'); const topicId = url.searchParams.get('topicId');
-    return structuredClone(tasks.filter((t) => (!pathId || t.pathId === pathId) && (!topicId || t.topicId === topicId))) as T;
+    const pathId = url.searchParams.get('pathId');
+    const topicId = url.searchParams.get('topicId');
+    return structuredClone(
+      tasks.filter((t) => (!pathId || t.pathId === pathId) && (!topicId || t.topicId === topicId))
+    ) as T;
   }
   if (pathname === '/practice' && method === 'POST') {
     const body = parseBody(options) as Partial<PracticeTask>;
-    const created: PracticeTask = { id: id('practice'), pathId: body.pathId ?? '', topicId: body.topicId ?? '', title: body.title ?? 'Practice task', instructions: body.instructions ?? '', type: body.type ?? 'lab', status: 'todo', evidence: '' };
-    tasks.push(created); return structuredClone(created) as T;
+    const created: PracticeTask = {
+      id: id('task'),
+      pathId: body.pathId || '',
+      topicId: body.topicId || '',
+      title: body.title || 'Practice task',
+      instructions: body.instructions || '',
+      type: body.type || 'command',
+      status: 'todo',
+      evidence: '',
+      updatedAt: new Date().toISOString(),
+    };
+    tasks.push(created);
+    return structuredClone(created) as T;
   }
   const practicePatch = pathname.match(/^\/practice\/([^/]+)$/);
   if (practicePatch && method === 'PATCH') {
-    const task = tasks.find((t) => t.id === practicePatch[1]); if (!task) throw new Error('Practice task not found');
-    Object.assign(task, parseBody(options)); return structuredClone(task) as T;
+    const task = tasks.find((t) => t.id === practicePatch[1]);
+    if (!task) throw new Error('Practice task not found');
+    Object.assign(task, parseBody(options), { updatedAt: new Date().toISOString() });
+    return structuredClone(task) as T;
   }
 
   throw new Error(`Mock endpoint not implemented: ${method} ${path}`);

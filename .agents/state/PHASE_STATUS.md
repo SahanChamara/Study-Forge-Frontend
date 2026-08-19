@@ -6,6 +6,6 @@
 | 1 | App shell, design system & auth screens | DONE |
 | 2 | Dashboard & learning paths | DONE |
 | 3 | Module/topic learning workspace | DONE |
-| 4 | Smart notes & practice UX | READY |
-| 5 | Review, search & analytics UX | NOT STARTED |
-| 6 | Backend integration & hardening | NOT STARTED |
+| 4 | Smart notes & practice UX | DONE |
+| 5 | Review, search & analytics UX | DONE |
+| 6 | Backend integration & hardening | READY |

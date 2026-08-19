@@ -8,6 +8,7 @@ import { TopicPage } from './pages/TopicPage';
 import { NotesPage } from './pages/NotesPage';
 import { PracticePage } from './pages/PracticePage';
 import { ReviewPage } from './pages/ReviewPage';
+import { SearchPage } from './pages/SearchPage';
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="/notes" element={<NotesPage />} />
           <Route path="/practice" element={<PracticePage />} />
           <Route path="/review" element={<ReviewPage />} />
+          <Route path="/search" element={<SearchPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Button } from '../components/ui/Button';
@@ -8,7 +8,8 @@ import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 import { Alert } from '../components/ui/Alert';
 import { Skeleton } from '../components/ui/Skeleton';
-import type { LearningPath, MasteryLevel, Note, PracticeTask, Topic, TopicStatus } from '../types';
+import { MarkdownPreview } from '../components/ui/MarkdownPreview';
+import type { LearningPath, MasteryLevel, Note, PracticeTask, PracticeTaskType, Topic, TopicStatus } from '../types';
 
 const defaultNoteTemplate = `# Topic Notes
 
@@ -64,18 +65,33 @@ export const TopicPage: React.FC = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [tasks, setTasks] = useState<PracticeTask[]>([]);
   const [noteContent, setNoteContent] = useState(defaultNoteTemplate);
-  const [taskTitle, setTaskTitle] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [savingNote, setSavingNote] = useState(false);
   const [noteSavedFeedback, setNoteSavedFeedback] = useState(false);
+  const [noteMode, setNoteMode] = useState<'edit' | 'preview'>('edit');
+  const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+  const [evidenceEdits, setEvidenceEdits] = useState<Record<string, string>>({});
+  const [savingEvidenceId, setSavingEvidenceId] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   // Add Resource Modal State
   const [isAddResourceModalOpen, setIsAddResourceModalOpen] = useState(false);
   const [newResourceUrl, setNewResourceUrl] = useState('');
   const [isSubmittingResource, setIsSubmittingResource] = useState(false);
+
+  // Add Task Modal State
+  const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskType, setNewTaskType] = useState<PracticeTaskType>('command');
+  const [newTaskInstructions, setNewTaskInstructions] = useState('');
+  const [newTaskCriteria, setNewTaskCriteria] = useState('');
+  const [isSubmittingNewTask, setIsSubmittingNewTask] = useState(false);
+
+  const initialLoadedContent = useRef(defaultNoteTemplate);
 
   const loadTopicData = async () => {
     setLoading(true);
@@ -93,9 +109,15 @@ export const TopicPage: React.FC = () => {
 
       if (notesData.length > 0 && notesData[0].contentMarkdown) {
         setNoteContent(notesData[0].contentMarkdown);
+        initialLoadedContent.current = notesData[0].contentMarkdown;
+        if (notesData[0].updatedAt) {
+          setLastSavedTime(new Date(notesData[0].updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        }
       } else {
         setNoteContent(defaultNoteTemplate);
+        initialLoadedContent.current = defaultNoteTemplate;
       }
+      setHasUnsavedChanges(false);
       setLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load topic workspace.');
@@ -187,6 +209,10 @@ export const TopicPage: React.FC = () => {
         });
         setNotes([created]);
       }
+      setHasUnsavedChanges(false);
+      initialLoadedContent.current = noteContent;
+      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setLastSavedTime(nowStr);
       setNoteSavedFeedback(true);
       setTimeout(() => setNoteSavedFeedback(false), 3000);
     } catch (err) {
@@ -196,26 +222,41 @@ export const TopicPage: React.FC = () => {
     }
   };
 
-  // Add Practice task handler
-  const handleAddTask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!taskTitle.trim()) return;
+  // Handle Note Content Change
+  const handleNoteContentChange = (newVal: string) => {
+    setNoteContent(newVal);
+    setHasUnsavedChanges(newVal !== initialLoadedContent.current);
+  };
 
+  // Add Practice task handler
+  const handleCreateTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTaskTitle.trim()) return;
+
+    setIsSubmittingNewTask(true);
     try {
       const created = await api<PracticeTask>('/practice', {
         method: 'POST',
         body: JSON.stringify({
           pathId,
           topicId,
-          title: taskTitle,
-          instructions: '',
-          type: 'command',
+          title: newTaskTitle.trim(),
+          instructions: newTaskInstructions.trim(),
+          type: newTaskType,
+          status: 'todo',
+          evidence: '',
+          verificationCriteria: newTaskCriteria.trim(),
         }),
       });
       setTasks([...tasks, created]);
-      setTaskTitle('');
+      setNewTaskTitle('');
+      setNewTaskInstructions('');
+      setNewTaskCriteria('');
+      setIsAddTaskModalOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add task.');
+    } finally {
+      setIsSubmittingNewTask(false);
     }
   };
 
@@ -230,6 +271,25 @@ export const TopicPage: React.FC = () => {
       setTasks(tasks.map((t) => (t.id === task.id ? updated : t)));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update task.');
+    }
+  };
+
+  // Save evidence for task
+  const handleSaveEvidence = async (taskId: string) => {
+    const evidenceText = evidenceEdits[taskId];
+    if (evidenceText === undefined) return;
+
+    setSavingEvidenceId(taskId);
+    try {
+      const updated = await api<PracticeTask>(`/practice/${taskId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ evidence: evidenceText }),
+      });
+      setTasks(tasks.map((t) => (t.id === taskId ? updated : t)));
+      setSavingEvidenceId(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save evidence.');
+      setSavingEvidenceId(null);
     }
   };
 
@@ -258,6 +318,14 @@ export const TopicPage: React.FC = () => {
       navigate(`/paths/${pathId}/topics/${nextTopic.id}`);
     }
   };
+
+  // Note Word & Character Metrics
+  const noteMetrics = useMemo(() => {
+    const clean = noteContent.replace(/#|\*|`|-/g, '').trim();
+    const words = clean ? clean.split(/\s+/).length : 0;
+    const chars = noteContent.length;
+    return { words, chars };
+  }, [noteContent]);
 
   if (loading) {
     return (
@@ -585,14 +653,42 @@ export const TopicPage: React.FC = () => {
           <div className="tab-content notes-tab-content">
             <Card className="smart-notes-card">
               <CardHeader>
-                <div>
+                <div className="notes-header-left">
                   <div className="eyebrow">STRUCTURED MARKDOWN</div>
                   <h3>Smart Notes (Write from memory)</h3>
                 </div>
-                <div className="notes-actions">
-                  {noteSavedFeedback && (
-                    <span className="saved-feedback-badge">✓ Note Saved</span>
-                  )}
+
+                <div className="notes-header-controls">
+                  {/* Edit / Preview Toggle */}
+                  <div className="note-mode-toggle">
+                    <button
+                      type="button"
+                      className={`mode-btn ${noteMode === 'edit' ? 'active' : ''}`}
+                      onClick={() => setNoteMode('edit')}
+                    >
+                      ✏️ Edit
+                    </button>
+                    <button
+                      type="button"
+                      className={`mode-btn ${noteMode === 'preview' ? 'active' : ''}`}
+                      onClick={() => setNoteMode('preview')}
+                    >
+                      👁 Live Preview
+                    </button>
+                  </div>
+
+                  <div className="notes-save-status">
+                    {hasUnsavedChanges ? (
+                      <span className="status-unsaved">● Unsaved changes</span>
+                    ) : lastSavedTime ? (
+                      <span className="status-saved">✓ Saved at {lastSavedTime}</span>
+                    ) : null}
+
+                    {noteSavedFeedback && (
+                      <span className="saved-feedback-badge">✓ Saved!</span>
+                    )}
+                  </div>
+
                   <Button
                     variant="primary"
                     size="sm"
@@ -603,26 +699,60 @@ export const TopicPage: React.FC = () => {
                   </Button>
                 </div>
               </CardHeader>
+
               <CardBody>
-                <div className="template-helper-bar">
-                  <span className="template-helper-label">Quick Inserts:</span>
-                  <button
-                    type="button"
-                    className="template-insert-btn"
-                    onClick={() => setNoteContent(defaultNoteTemplate)}
-                  >
-                    Standard 9-Section Template
-                  </button>
-                </div>
-                <textarea
-                  className="note-editor-workspace"
-                  value={noteContent}
-                  onChange={(e) => setNoteContent(e.target.value)}
-                  placeholder="Capture mental models, command syntax, pitfalls, and recall questions..."
-                />
-                <small className="editor-footer-text">
-                  Formatted in Markdown. Stored and synced with your study path.
-                </small>
+                {noteMode === 'edit' ? (
+                  <>
+                    <div className="template-helper-bar">
+                      <span className="template-helper-label">Templates:</span>
+                      <button
+                        type="button"
+                        className="template-insert-btn"
+                        onClick={() => handleNoteContentChange(defaultNoteTemplate)}
+                      >
+                        9-Section Smart Template
+                      </button>
+                      <button
+                        type="button"
+                        className="template-insert-btn"
+                        onClick={() =>
+                          handleNoteContentChange(
+                            `${noteContent}\n\n## Mental model\n- Core concept:\n`
+                          )
+                        }
+                      >
+                        ＋ Mental Model
+                      </button>
+                      <button
+                        type="button"
+                        className="template-insert-btn"
+                        onClick={() =>
+                          handleNoteContentChange(
+                            `${noteContent}\n\n## Recall questions\n- Q: \n  A: \n`
+                          )
+                        }
+                      >
+                        ＋ Recall Question
+                      </button>
+                    </div>
+
+                    <textarea
+                      className="note-editor-workspace"
+                      value={noteContent}
+                      onChange={(e) => handleNoteContentChange(e.target.value)}
+                      placeholder="Capture mental models, command syntax, pitfalls, and recall questions..."
+                    />
+
+                    <div className="editor-status-bar">
+                      <span>{noteMetrics.words} words · {noteMetrics.chars} chars</span>
+                      <span>Markdown formatting supported</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="note-preview-pane">
+                    <MarkdownPreview content={noteContent} />
+                  </div>
+                )}
               </CardBody>
             </Card>
           </div>
@@ -637,42 +767,112 @@ export const TopicPage: React.FC = () => {
                   <div className="eyebrow">HANDS-ON LABS</div>
                   <h3>Prove Mastery with Practice Tasks</h3>
                 </div>
+                <Button
+                  variant="accent"
+                  size="sm"
+                  onClick={() => setIsAddTaskModalOpen(true)}
+                  leftIcon="＋"
+                >
+                  Add Lab Task
+                </Button>
               </CardHeader>
-              <CardBody>
-                <form className="add-task-inline-form" onSubmit={handleAddTask}>
-                  <Input
-                    placeholder="e.g. Inspect kernel ring buffer with dmesg and filter for errors..."
-                    value={taskTitle}
-                    onChange={(e) => setTaskTitle(e.target.value)}
-                    required
-                  />
-                  <Button type="submit" variant="primary">
-                    Add Lab Task
-                  </Button>
-                </form>
 
+              <CardBody>
                 <div className="workspace-task-list">
                   {tasks.length > 0 ? (
-                    tasks.map((task) => (
-                      <label
-                        key={task.id}
-                        className={`workspace-task-row ${task.status === 'done' ? 'is-done' : ''}`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={task.status === 'done'}
-                          onChange={() => handleToggleTask(task)}
-                        />
-                        <div className="task-row-details">
-                          <strong className="task-title">{task.title}</strong>
-                          <span className="task-type-badge">{task.type}</span>
+                    tasks.map((task) => {
+                      const isExpanded = expandedTaskId === task.id;
+                      const currentEvidence =
+                        evidenceEdits[task.id] !== undefined
+                          ? evidenceEdits[task.id]
+                          : task.evidence;
+
+                      return (
+                        <div
+                          key={task.id}
+                          className={`workspace-task-card ${task.status === 'done' ? 'is-done' : ''}`}
+                        >
+                          <div className="task-row-main">
+                            <label className="task-checkbox-label">
+                              <input
+                                type="checkbox"
+                                checked={task.status === 'done'}
+                                onChange={() => handleToggleTask(task)}
+                              />
+                              <span className="task-checkbox-custom" />
+                            </label>
+
+                            <div className="task-details">
+                              <div className="task-header-line">
+                                <span className={`task-type-badge type-${task.type}`}>
+                                  {task.type}
+                                </span>
+                                <strong className="task-title-text">{task.title}</strong>
+                              </div>
+
+                              {task.instructions && (
+                                <p className="task-instructions-snippet">{task.instructions}</p>
+                              )}
+
+                              {task.verificationCriteria && (
+                                <div className="task-criteria-inline">
+                                  <span className="criteria-tag">Criteria:</span>
+                                  <span>{task.verificationCriteria}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            <button
+                              type="button"
+                              className="task-evidence-toggle"
+                              onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}
+                            >
+                              {isExpanded ? 'Hide Proof ▲' : task.evidence ? 'View Proof ✓' : 'Add Proof ＋'}
+                            </button>
+                          </div>
+
+                          {/* Expandable Evidence Drawer */}
+                          {isExpanded && (
+                            <div className="task-evidence-drawer">
+                              <label className="evidence-label">Terminal Output / Evidence Proof:</label>
+                              <textarea
+                                className="evidence-textarea"
+                                rows={4}
+                                placeholder="Paste terminal output, command exit code, or verification proof..."
+                                value={currentEvidence}
+                                onChange={(e) =>
+                                  setEvidenceEdits({
+                                    ...evidenceEdits,
+                                    [task.id]: e.target.value,
+                                  })
+                                }
+                              />
+                              <div className="evidence-footer">
+                                <small>Submitted proof verifies practical execution unaided.</small>
+                                <Button
+                                  variant="primary"
+                                  size="sm"
+                                  loading={savingEvidenceId === task.id}
+                                  onClick={() => handleSaveEvidence(task.id)}
+                                >
+                                  Save Proof
+                                </Button>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      </label>
-                    ))
+                      );
+                    })
                   ) : (
                     <div className="empty-tasks-box">
                       <p>No practice labs created for this topic yet.</p>
-                      <small>Add hands-on tasks above to prove you can execute unaided.</small>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setIsAddTaskModalOpen(true)}
+                      >
+                        ＋ Create First Practice Task
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -738,6 +938,77 @@ export const TopicPage: React.FC = () => {
               loading={isSubmittingResource}
             >
               Add Reference
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Add Task Modal */}
+      <Modal
+        isOpen={isAddTaskModalOpen}
+        onClose={() => setIsAddTaskModalOpen(false)}
+        title="Add Hands-on Practice Task"
+      >
+        <form onSubmit={handleCreateTask} className="add-task-form">
+          <Input
+            label="Task Title"
+            placeholder="e.g. Profile syscall execution counts with strace -c"
+            value={newTaskTitle}
+            onChange={(e) => setNewTaskTitle(e.target.value)}
+            required
+          />
+
+          <div className="form-field">
+            <label className="form-label">Task Type</label>
+            <select
+              className="form-input"
+              value={newTaskType}
+              onChange={(e) => setNewTaskType(e.target.value as PracticeTaskType)}
+            >
+              <option value="command">Command (CLI recipe)</option>
+              <option value="configuration">Configuration (File modification)</option>
+              <option value="troubleshooting">Troubleshooting (Root cause fix)</option>
+              <option value="lab">Lab (Multi-step scenario)</option>
+              <option value="conceptual">Conceptual (Diagram & review)</option>
+            </select>
+          </div>
+
+          <div className="form-field">
+            <label className="form-label">Instructions</label>
+            <textarea
+              className="form-input"
+              rows={3}
+              placeholder="Step-by-step instructions or target problem statement..."
+              value={newTaskInstructions}
+              onChange={(e) => setNewTaskInstructions(e.target.value)}
+            />
+          </div>
+
+          <div className="form-field">
+            <label className="form-label">Verification Criteria</label>
+            <textarea
+              className="form-input"
+              rows={2}
+              placeholder="Proof of completion: command produces expected return code or terminal output"
+              value={newTaskCriteria}
+              onChange={(e) => setNewTaskCriteria(e.target.value)}
+            />
+          </div>
+
+          <div className="modal-actions">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsAddTaskModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={isSubmittingNewTask}
+            >
+              Create Task
             </Button>
           </div>
         </form>

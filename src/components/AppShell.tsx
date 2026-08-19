@@ -3,10 +3,12 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/useAuth';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
+import { SearchModal } from './SearchModal';
 
 export function AppShell() {
   const { user, isMockMode, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
   const location = useLocation();
 
   const toggleMobileMenu = () => {
@@ -31,15 +33,25 @@ export function AppShell() {
             <small>Learning OS</small>
           </div>
         </div>
-        <button
-          type="button"
-          className="mobile-menu-btn"
-          onClick={toggleMobileMenu}
-          aria-label="Toggle navigation menu"
-          aria-expanded={mobileMenuOpen}
-        >
-          <span className="hamburger-icon"></span>
-        </button>
+        <div className="mobile-header-actions">
+          <button
+            type="button"
+            className="mobile-search-btn"
+            onClick={() => setSearchModalOpen(true)}
+            aria-label="Search"
+          >
+            🔍
+          </button>
+          <button
+            type="button"
+            className="mobile-menu-btn"
+            onClick={toggleMobileMenu}
+            aria-label="Toggle navigation menu"
+            aria-expanded={mobileMenuOpen}
+          >
+            <span className="hamburger-icon"></span>
+          </button>
+        </div>
       </header>
 
       {/* Sidebar Navigation */}
@@ -104,6 +116,15 @@ export function AppShell() {
             <span className="nav-icon">🔄</span>
             <span>Spaced Review</span>
           </NavLink>
+
+          <NavLink
+            to="/search"
+            onClick={closeMobileMenu}
+            className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}
+          >
+            <span className="nav-icon">🔍</span>
+            <span>Search</span>
+          </NavLink>
         </nav>
 
         <div className="aside-bottom">
@@ -131,7 +152,7 @@ export function AppShell() {
 
       {/* Main Workspace Area */}
       <div className="app-main-layout">
-        {/* Top bar with Breadcrumbs */}
+        {/* Top bar with Breadcrumbs & Global Search Button */}
         <div className="top-bar">
           <div className="breadcrumb-nav">
             <NavLink to="/">Home</NavLink>
@@ -152,12 +173,30 @@ export function AppShell() {
               );
             })}
           </div>
+
+          <div className="top-bar-actions">
+            <button
+              type="button"
+              className="global-search-trigger-btn"
+              onClick={() => setSearchModalOpen(true)}
+              title="Search anything (Ctrl+K / Cmd+K)"
+            >
+              <span>🔍 Search curriculum...</span>
+              <kbd>/</kbd>
+            </button>
+          </div>
         </div>
 
         <main className="app-content">
           <Outlet />
         </main>
       </div>
+
+      {/* Global Search Palette Modal */}
+      <SearchModal
+        isOpen={searchModalOpen}
+        onClose={() => setSearchModalOpen(false)}
+      />
 
       {/* Backdrop for mobile drawer */}
       {mobileMenuOpen && (

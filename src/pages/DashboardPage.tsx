@@ -20,18 +20,28 @@ interface DashboardData {
   activeTopic?: (Topic & { pathTitle?: string }) | null;
 }
 
+interface AnalyticsData {
+  masteryDist: Record<number, number>;
+  retentionRate: number;
+}
+
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const loadDashboard = () => {
     setLoading(true);
     setError('');
-    api<DashboardData>('/dashboard')
-      .then((res) => {
-        setData(res);
+    Promise.all([
+      api<DashboardData>('/dashboard'),
+      api<AnalyticsData>('/analytics').catch(() => null),
+    ])
+      .then(([dashRes, analyticsRes]) => {
+        setData(dashRes);
+        setAnalytics(analyticsRes);
         setLoading(false);
       })
       .catch((err) => {
@@ -68,6 +78,22 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {error && <Alert variant="error" message={error} onRetry={loadDashboard} />}
+
+      {/* Spaced Review Due Prompt Banner */}
+      {data && data.pendingReviews > 0 && (
+        <div className="review-due-banner">
+          <div className="due-banner-content">
+            <span className="due-icon">🔄</span>
+            <div>
+              <strong>Spaced Recall Due Today</strong>
+              <p>{data.pendingReviews} topics are scheduled for active retention reinforcement.</p>
+            </div>
+          </div>
+          <Link to="/review" className="btn btn-accent btn-sm">
+            Start Recall Session →
+          </Link>
+        </div>
+      )}
 
       {loading ? (
         <div className="dashboard-skeleton-grid">
@@ -157,21 +183,45 @@ export const DashboardPage: React.FC = () => {
               </Card>
             )}
 
-            {/* Overall Mastery & Quick Actions */}
+            {/* Overall Mastery & Analytics Breakdown */}
             <Card className="mastery-overview-card">
               <div className="eyebrow">PROGRESS OVERVIEW</div>
-              <h2>Curriculum Mastery</h2>
+              <h2>Curriculum Mastery & Retention</h2>
               <p>Topics mastered with unaided hands-on verification:</p>
               <ProgressBar
                 value={overallMasteryPercent}
-                label="Overall Mastery"
+                label="Overall Mastery Rate"
                 variant="accent"
                 size="lg"
               />
 
+              {/* 6-Level Mastery Scale Distribution */}
+              {analytics && (
+                <div className="mastery-distribution-section">
+                  <div className="distribution-header">
+                    <span>Mastery Level Breakdown</span>
+                    <small>{analytics.retentionRate}% Retention Score</small>
+                  </div>
+                  <div className="mastery-levels-bar">
+                    {[0, 1, 2, 3, 4, 5].map((lvl) => {
+                      const count = analytics.masteryDist[lvl] || 0;
+                      return (
+                        <div key={lvl} className={`level-segment lvl-${lvl}`} title={`M${lvl}: ${count} topics`}>
+                          <span className="lvl-name">M{lvl}</span>
+                          <span className="lvl-count">{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="quick-actions-bar">
                 <Link to="/paths" className="btn btn-secondary btn-sm">
-                  🗺️ View All Paths
+                  🗺️ All Paths
+                </Link>
+                <Link to="/search" className="btn btn-secondary btn-sm">
+                  🔍 Global Search
                 </Link>
                 <Link to="/review" className="btn btn-secondary btn-sm">
                   🔄 Review Queue ({data.pendingReviews})

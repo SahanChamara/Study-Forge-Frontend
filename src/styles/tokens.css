@@ -1,0 +1,134 @@
+/* StudyForge Design System Tokens — Light Productivity Theme */
+:root {
+  /* 1. Primary Palette (Indigo/Purple) */
+  --color-primary-50:  #f5f4ff;
+  --color-primary-100: #efefff;
+  --color-primary-200: #dedcff;
+  --color-primary-300: #c4c0ff;
+  --color-primary-400: #918aff;
+  --color-primary-500: #5f5cff;
+  --color-primary-600: #514df0;
+  --color-primary-700: #4440d8;
+  --color-primary-800: #3936ad;
+  --color-primary-900: #302f88;
+
+  /* Primary Action Defaults */
+  --color-primary: var(--color-primary-500);
+  --color-primary-hover: var(--color-primary-600);
+  --color-primary-active: var(--color-primary-700);
+  --color-primary-soft: var(--color-primary-50);
+  --color-primary-soft-border: var(--color-primary-200);
+
+  /* 2. Neutral Palette */
+  --color-bg: #f8f9fc;
+  --color-bg-subtle: #fbfbfd;
+  --color-surface: #ffffff;
+  --color-surface-soft: #fafbfe;
+  --color-surface-hover: #f4f5fa;
+  --color-surface-active: #eceef5;
+
+  --color-border: #ececf4;
+  --color-border-strong: #ddddec;
+  --color-border-hover: #d2d2e4;
+
+  --color-text-primary: #15162f;
+  --color-text-secondary: #62657f;
+  --color-text-muted: #999caf;
+  --color-text-disabled: #b9bbc8;
+
+  /* 3. Backward Compatibility Aliases for Existing Screens */
+  --color-canvas: var(--color-bg);
+  --color-text-main: var(--color-text-primary);
+  --color-text-light: var(--color-text-muted);
+  --color-secondary: var(--color-primary-600);
+  --color-secondary-bg: var(--color-primary-50);
+  --color-accent: var(--color-primary);
+  --color-accent-hover: var(--color-primary-hover);
+
+  /* 4. Semantic Colors */
+  --color-info: #28c0df;
+  --color-info-bg: #eaf9fc;
+  --color-info-border: #bfeef7;
+  --color-info-text: #0e7490;
+
+  --color-success: #35a35a;
+  --color-success-bg: #f0fdf4;
+  --color-success-border: #bbf7d0;
+  --color-success-text: #166534;
+
+  --color-warning: #ffd668;
+  --color-warning-bg: #fffbeb;
+  --color-warning-border: #fde68a;
+  --color-warning-text: #92400e;
+
+  --color-orange: #ff9068;
+  --color-orange-bg: #fff7ed;
+  --color-orange-border: #ffedd5;
+  --color-orange-text: #9a3412;
+
+  --color-danger: #ff6878;
+  --color-error-bg: #fff0ef;
+  --color-error-border: #ffd1cd;
+  --color-error-text: #9d2b22;
+
+  /* 5. Semantic Learning Status Colors */
+  --color-status-not-started: #999caf;
+  --color-status-not-started-bg: #f3f4f8;
+
+  --color-status-learning: #28c0df;
+  --color-status-learning-bg: #eaf9fc;
+
+  --color-status-practicing: #5f5cff;
+  --color-status-practicing-bg: #f5f4ff;
+
+  --color-status-review: #d97706;
+  --color-status-review-bg: #fffbeb;
+
+  --color-status-mastered: #35a35a;
+  --color-status-mastered-bg: #f0fdf4;
+
+  --color-status-blocked: #ff6878;
+  --color-status-blocked-bg: #fff0ef;
+
+  /* 6. Spacing System (4px / 8px Grid) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* 7. Border Radii */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 22px;
+  --radius-pill: 999px;
+  --radius-full: 9999px;
+
+  /* 8. Shadows & Elevation */
+  --shadow-none: none;
+  --shadow-card: 0 1px 3px rgba(20, 20, 60, 0.03), 0 1px 2px rgba(20, 20, 60, 0.02);
+  --shadow-sm: 0 1px 2px 0 rgba(20, 20, 60, 0.04);
+  --shadow-md: 0 4px 12px -2px rgba(20, 20, 60, 0.06), 0 2px 6px -1px rgba(20, 20, 60, 0.03);
+  --shadow-lg: 0 8px 30px rgba(20, 20, 60, 0.08);
+  --shadow-focus: 0 0 0 3px rgba(95, 92, 255, 0.15);
+  --shadow-focus-error: 0 0 0 3px rgba(255, 104, 120, 0.2);
+
+  /* 9. Layout Metrics */
+  --sidebar-width: 240px;
+  --page-max-width: 1600px;
+  --page-padding: 32px;
+  --header-height: 64px;
+
+  /* 10. Motion Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}

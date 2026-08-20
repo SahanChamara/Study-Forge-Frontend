@@ -51,3 +51,8 @@ export const Modal: React.FC<ModalProps> = ({
     </div>
   );
 };
+
+export const Dialog = Modal;
+export type DialogProps = ModalProps;
+
+

@@ -9,6 +9,9 @@ import { NotesPage } from './pages/NotesPage';
 import { PracticePage } from './pages/PracticePage';
 import { ReviewPage } from './pages/ReviewPage';
 import { SearchPage } from './pages/SearchPage';
+import { CalendarPage } from './pages/CalendarPage';
+import { AnalyticsPage } from './pages/AnalyticsPage';
+import { SettingsPage } from './pages/SettingsPage';
 
 export default function App() {
   return (
@@ -23,6 +26,9 @@ export default function App() {
           <Route path="/notes" element={<NotesPage />} />
           <Route path="/practice" element={<PracticePage />} />
           <Route path="/review" element={<ReviewPage />} />
+          <Route path="/calendar" element={<CalendarPage />} />
+          <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/search" element={<SearchPage />} />
         </Route>
       </Routes>

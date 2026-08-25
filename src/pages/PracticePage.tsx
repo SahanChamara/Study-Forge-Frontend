@@ -1,9 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { PageHeader } from '../components/layout/PageHeader';
 import { Card, CardHeader, CardBody, CardFooter } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { SearchInput } from '../components/ui/SearchInput';
+import { Select } from '../components/ui/Select';
 import { Input } from '../components/ui/Input';
+import { Textarea } from '../components/ui/Textarea';
 import { Modal } from '../components/ui/Modal';
 import { Alert } from '../components/ui/Alert';
 import { Skeleton } from '../components/ui/Skeleton';
@@ -178,91 +182,100 @@ export const PracticePage: React.FC = () => {
     }
   };
 
+  const pathOptions = useMemo(() => [
+    { value: 'all', label: 'All Learning Paths' },
+    ...paths.map((p) => ({ value: p.id, label: p.title })),
+  ], [paths]);
+
+  const selectedPathTopics = useMemo(() => {
+    const found = paths.find((p) => p.id === newPathId);
+    return found?.topics || [];
+  }, [paths, newPathId]);
+
   return (
-    <section className="practice-page-view">
-      <header className="page-header">
-        <div>
-          <div className="eyebrow">HANDS-ON LABS</div>
-          <h1>Practice Queue</h1>
-          <p>Executable hands-on exercises, command recipes, and terminal proof submission.</p>
-        </div>
-        <Button
-          variant="accent"
-          onClick={() => setIsCreateModalOpen(true)}
-          leftIcon="＋"
-        >
-          Add Lab Task
-        </Button>
-      </header>
+    <div className="practice-page-container animate-fade-in">
+      <PageHeader
+        eyebrow="HANDS-ON LABS"
+        title="Practice Queue"
+        description="Executable hands-on exercises, command recipes, and terminal proof submission."
+        actions={
+          <Button
+            variant="primary"
+            onClick={() => setIsCreateModalOpen(true)}
+            leftIcon="＋"
+          >
+            Add Lab Task
+          </Button>
+        }
+      />
 
       {error && <Alert variant="error" message={error} onDismiss={() => setError('')} />}
 
       {/* Progress & Summary Stats Banner */}
-      <div className="practice-stats-banner">
-        <div className="practice-stats-grid">
-          <div className="practice-stat-box">
-            <span className="stat-num">{stats.total}</span>
-            <span className="stat-lbl">Total Tasks</span>
+      <Card className="practice-summary-card mb-6">
+        <CardBody>
+          <div className="practice-summary-flex">
+            <div className="practice-stat-counters">
+              <div className="counter-item">
+                <span className="counter-num">{stats.total}</span>
+                <span className="counter-lbl">Total Tasks</span>
+              </div>
+              <div className="counter-item counter-done">
+                <span className="counter-num">{stats.completed}</span>
+                <span className="counter-lbl">Completed</span>
+              </div>
+              <div className="counter-item counter-doing">
+                <span className="counter-num">{stats.doing}</span>
+                <span className="counter-lbl">In Progress</span>
+              </div>
+              <div className="counter-item">
+                <span className="counter-num">{stats.todo}</span>
+                <span className="counter-lbl">To Do</span>
+              </div>
+            </div>
+
+            <div className="practice-bar-container">
+              <ProgressBar
+                value={stats.rate}
+                label="Lab Mastery Rate"
+                showPercent
+                variant="primary"
+                size="md"
+              />
+            </div>
           </div>
-          <div className="practice-stat-box stat-done-box">
-            <span className="stat-num">{stats.completed}</span>
-            <span className="stat-lbl">Completed</span>
-          </div>
-          <div className="practice-stat-box stat-doing-box">
-            <span className="stat-num">{stats.doing}</span>
-            <span className="stat-lbl">In Progress</span>
-          </div>
-          <div className="practice-stat-box">
-            <span className="stat-num">{stats.todo}</span>
-            <span className="stat-lbl">To Do</span>
-          </div>
-        </div>
-        <div className="practice-progress-box">
-          <ProgressBar
-            value={stats.rate}
-            label="Practice Mastery Completion Rate"
-            showPercent
-            variant="accent"
-            size="md"
-          />
-        </div>
-      </div>
+        </CardBody>
+      </Card>
 
       {/* Filter and Search Bar */}
-      <div className="practice-filter-bar">
-        <div className="practice-search-wrapper">
-          <Input
+      <div className="practice-filter-bar mb-4">
+        <div className="practice-search-box">
+          <SearchInput
             placeholder="Search tasks by command, error message, or keywords..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onClear={() => setSearchQuery('')}
           />
         </div>
 
-        <div className="practice-path-select-wrapper">
-          <select
-            className="practice-path-dropdown"
+        <div className="practice-path-select-box">
+          <Select
             value={selectedPathId}
             onChange={(e) => setSelectedPathId(e.target.value)}
-          >
-            <option value="all">All Learning Paths</option>
-            {paths.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.title}
-              </option>
-            ))}
-          </select>
+            options={pathOptions}
+          />
         </div>
       </div>
 
       {/* Filter Chips for Status & Type */}
-      <div className="practice-chips-row">
-        <div className="chips-group">
-          <span className="chips-label">Status:</span>
+      <div className="practice-chips-bar mb-6">
+        <div className="chips-cluster">
+          <span className="chips-cluster-title">Status:</span>
           {(['all', 'todo', 'doing', 'done'] as const).map((st) => (
             <button
               key={st}
               type="button"
-              className={`filter-chip ${selectedStatus === st ? 'active' : ''}`}
+              className={`filter-chip-item ${selectedStatus === st ? 'is-active' : ''}`}
               onClick={() => setSelectedStatus(st)}
             >
               {st === 'all' ? 'All Status' : st === 'doing' ? 'In Progress' : st.toUpperCase()}
@@ -270,13 +283,13 @@ export const PracticePage: React.FC = () => {
           ))}
         </div>
 
-        <div className="chips-group">
-          <span className="chips-label">Task Type:</span>
+        <div className="chips-cluster">
+          <span className="chips-cluster-title">Type:</span>
           {(['all', 'command', 'configuration', 'troubleshooting', 'lab'] as const).map((tp) => (
             <button
               key={tp}
               type="button"
-              className={`filter-chip ${selectedType === tp ? 'active' : ''}`}
+              className={`filter-chip-item ${selectedType === tp ? 'is-active' : ''}`}
               onClick={() => setSelectedType(tp)}
             >
               {tp === 'all' ? 'All Types' : tp.toUpperCase()}
@@ -287,13 +300,19 @@ export const PracticePage: React.FC = () => {
 
       {/* Task Queue List */}
       {loading ? (
-        <div className="practice-tasks-stack">
+        <div className="practice-cards-stack">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} variant="rectangular" height={180} />
+            <Card key={i}>
+              <CardBody>
+                <Skeleton variant="text" width="30%" height={16} />
+                <Skeleton variant="text" width="60%" height={24} />
+                <Skeleton variant="text" width="90%" height={40} />
+              </CardBody>
+            </Card>
           ))}
         </div>
       ) : filteredTasks.length > 0 ? (
-        <div className="practice-tasks-stack">
+        <div className="practice-cards-stack">
           {filteredTasks.map((task) => {
             const isExpanded = expandedEvidenceTaskId === task.id;
             const currentEvidence =
@@ -306,11 +325,11 @@ export const PracticePage: React.FC = () => {
             return (
               <Card
                 key={task.id}
-                className={`practice-task-card status-${task.status}`}
+                className={`task-queue-card status-${task.status}`}
               >
                 <CardHeader>
-                  <div className="task-card-header-left">
-                    <label className="task-checkbox-label">
+                  <div className="task-header-left">
+                    <label className="task-row-checkbox">
                       <input
                         type="checkbox"
                         checked={task.status === 'done'}
@@ -321,16 +340,16 @@ export const PracticePage: React.FC = () => {
                           )
                         }
                       />
-                      <span className="task-checkbox-custom" />
+                      <span className="checkbox-custom-indicator" />
                     </label>
                     <div>
-                      <div className="task-breadcrumbs-meta">
-                        <span className="task-path-tag">{pathTitle}</span>
-                        <span className="separator">/</span>
-                        <span className="task-topic-tag">{topicTitle}</span>
+                      <div className="task-hierarchy-meta">
+                        <span className="meta-path-tag">{pathTitle}</span>
+                        <span className="meta-slash">/</span>
+                        <span className="meta-topic-tag">{topicTitle}</span>
                       </div>
                       <h3
-                        className={`task-title-text ${
+                        className={`task-row-title ${
                           task.status === 'done' ? 'is-completed' : ''
                         }`}
                       >
@@ -339,16 +358,17 @@ export const PracticePage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="task-card-header-right">
-                    <span className={`task-type-chip type-${task.type}`}>
+                  <div className="task-header-right">
+                    <span className={`task-badge-pill type-${task.type}`}>
                       {task.type}
                     </span>
                     <select
-                      className={`task-status-dropdown status-select-${task.status}`}
+                      className={`task-inline-status-select status-select-${task.status}`}
                       value={task.status}
                       onChange={(e) =>
                         handleUpdateStatus(task.id, e.target.value as TaskStatus)
                       }
+                      aria-label="Update task status"
                     >
                       <option value="todo">To Do</option>
                       <option value="doing">In Progress</option>
@@ -356,7 +376,7 @@ export const PracticePage: React.FC = () => {
                     </select>
                     <button
                       type="button"
-                      className="task-delete-btn"
+                      className="task-delete-icon-btn"
                       onClick={() => handleDeleteTask(task.id)}
                       title="Delete Task"
                     >
@@ -367,16 +387,16 @@ export const PracticePage: React.FC = () => {
 
                 <CardBody>
                   {task.instructions && (
-                    <div className="task-instructions-box">
+                    <div className="task-instruction-block">
                       <strong>Instructions:</strong>
                       <p>{task.instructions}</p>
                     </div>
                   )}
 
                   {task.verificationCriteria && (
-                    <div className="task-criteria-box">
-                      <span className="criteria-icon">🎯</span>
-                      <div className="criteria-content">
+                    <div className="task-criteria-block">
+                      <span className="criteria-emoji">🎯</span>
+                      <div className="criteria-text">
                         <strong>Verification Criteria:</strong>
                         <p>{task.verificationCriteria}</p>
                       </div>
@@ -384,29 +404,29 @@ export const PracticePage: React.FC = () => {
                   )}
 
                   {/* Terminal Evidence Drawer */}
-                  <div className="task-evidence-section">
+                  <div className="task-evidence-area">
                     <button
                       type="button"
-                      className="evidence-toggle-btn"
+                      className="evidence-toggle-banner"
                       onClick={() =>
                         setExpandedEvidenceTaskId(isExpanded ? null : task.id)
                       }
                     >
                       <span>
-                        {isExpanded ? '▼ Hide Evidence / Terminal Output' : '▶ Terminal Evidence & Proof'}
+                        {isExpanded ? '▼ Hide Evidence Proof' : '▶ Terminal Evidence Proof'}
                       </span>
                       {task.evidence ? (
-                        <span className="evidence-saved-badge">Proof Attached</span>
+                        <span className="proof-attached-tag">Proof Attached ✓</span>
                       ) : (
-                        <span className="evidence-empty-badge">No Proof Submitted</span>
+                        <span className="proof-none-tag">No Proof Submitted</span>
                       )}
                     </button>
 
                     {isExpanded && (
-                      <div className="evidence-drawer-body">
+                      <div className="evidence-panel-body">
                         <textarea
-                          className="evidence-textarea"
-                          placeholder="Paste terminal outputs, logs, command output, or verification proof..."
+                          className="evidence-input-area"
+                          placeholder="Paste terminal outputs, exit codes, or verification logs..."
                           value={currentEvidence}
                           onChange={(e) =>
                             setEvidenceEdits({
@@ -415,8 +435,8 @@ export const PracticePage: React.FC = () => {
                             })
                           }
                         />
-                        <div className="evidence-actions">
-                          <small>Submitted terminal proof verifies unaided mastery.</small>
+                        <div className="evidence-bottom-actions">
+                          <small>Submitted terminal proof verifies hands-on mastery unaided.</small>
                           <Button
                             variant="primary"
                             size="sm"
@@ -436,7 +456,7 @@ export const PracticePage: React.FC = () => {
                     to={`/paths/${task.pathId}/topics/${task.topicId}`}
                     className="btn btn-ghost btn-sm"
                   >
-                    Open Topic Study Workspace →
+                    Open in Topic Study Workspace →
                   </Link>
                 </CardFooter>
               </Card>
@@ -448,14 +468,8 @@ export const PracticePage: React.FC = () => {
           icon="⚡"
           title="No practice tasks found"
           description="Create hands-on lab exercises and command tests to prove practical mastery."
-          action={
-            <Button
-              variant="primary"
-              onClick={() => setIsCreateModalOpen(true)}
-            >
-              ＋ Add First Lab Task
-            </Button>
-          }
+          actionLabel="Add First Lab Task"
+          onAction={() => setIsCreateModalOpen(true)}
         />
       )}
 
@@ -474,84 +488,58 @@ export const PracticePage: React.FC = () => {
             required
           />
 
-          <div className="form-field">
-            <label className="form-label">Task Type</label>
-            <select
-              className="form-input"
-              value={newType}
-              onChange={(e) => setNewType(e.target.value as PracticeTaskType)}
-            >
-              <option value="command">Command (CLI recipe execution)</option>
-              <option value="configuration">Configuration (File modification & daemon reload)</option>
-              <option value="troubleshooting">Troubleshooting (Root cause diagnosis & fix)</option>
-              <option value="lab">Lab (Multi-step guided scenario)</option>
-              <option value="conceptual">Conceptual (Diagram & architecture review)</option>
-            </select>
-          </div>
+          <Select
+            label="Task Type"
+            value={newType}
+            onChange={(e) => setNewType(e.target.value as PracticeTaskType)}
+            options={[
+              { value: 'command', label: 'Command (CLI recipe execution)' },
+              { value: 'configuration', label: 'Configuration (File modification & daemon reload)' },
+              { value: 'troubleshooting', label: 'Troubleshooting (Root cause diagnosis & fix)' },
+              { value: 'lab', label: 'Lab (Multi-step guided scenario)' },
+              { value: 'conceptual', label: 'Conceptual (Diagram & architecture review)' },
+            ]}
+          />
 
-          <div className="form-field">
-            <label className="form-label">Instructions</label>
-            <textarea
-              className="form-input"
-              rows={3}
-              placeholder="Step-by-step instructions or target problem statement..."
-              value={newInstructions}
-              onChange={(e) => setNewInstructions(e.target.value)}
-            />
-          </div>
+          <Textarea
+            label="Instructions"
+            rows={3}
+            placeholder="Step-by-step instructions or target problem statement..."
+            value={newInstructions}
+            onChange={(e) => setNewInstructions(e.target.value)}
+          />
 
-          <div className="form-field">
-            <label className="form-label">Verification Criteria (Proof of Completion)</label>
-            <textarea
-              className="form-input"
-              rows={2}
-              placeholder="e.g. Service status active (running) and curl localhost:8080 returns 200 OK"
-              value={newCriteria}
-              onChange={(e) => setNewCriteria(e.target.value)}
-            />
-          </div>
+          <Textarea
+            label="Verification Criteria (Proof of Completion)"
+            rows={2}
+            placeholder="e.g. Service status active (running) and curl localhost:8080 returns 200 OK"
+            value={newCriteria}
+            onChange={(e) => setNewCriteria(e.target.value)}
+          />
 
           <div className="form-grid-2col">
-            <div className="form-field">
-              <label className="form-label">Learning Path</label>
-              <select
-                className="form-input"
-                value={newPathId}
-                onChange={(e) => {
-                  setNewPathId(e.target.value);
-                  const selectedPath = paths.find((p) => p.id === e.target.value);
-                  if (selectedPath?.topics?.[0]) {
-                    setNewTopicId(selectedPath.topics[0].id);
-                  }
-                }}
-              >
-                {paths.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.title}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Select
+              label="Learning Path"
+              value={newPathId}
+              onChange={(e) => {
+                setNewPathId(e.target.value);
+                const selectedPath = paths.find((p) => p.id === e.target.value);
+                if (selectedPath?.topics?.[0]) {
+                  setNewTopicId(selectedPath.topics[0].id);
+                }
+              }}
+              options={paths.map((p) => ({ value: p.id, label: p.title }))}
+            />
 
-            <div className="form-field">
-              <label className="form-label">Topic</label>
-              <select
-                className="form-input"
-                value={newTopicId}
-                onChange={(e) => setNewTopicId(e.target.value)}
-              >
-                {paths
-                  .find((p) => p.id === newPathId)
-                  ?.topics?.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.title}
-                    </option>
-                  ))}
-              </select>
-            </div>
+            <Select
+              label="Topic"
+              value={newTopicId}
+              onChange={(e) => setNewTopicId(e.target.value)}
+              options={selectedPathTopics.map((t) => ({ value: t.id, label: t.title }))}
+            />
           </div>
 
-          <div className="modal-actions">
+          <div className="modal-form-actions">
             <Button
               type="button"
               variant="secondary"
@@ -569,6 +557,6 @@ export const PracticePage: React.FC = () => {
           </div>
         </form>
       </Modal>
-    </section>
+    </div>
   );
 };

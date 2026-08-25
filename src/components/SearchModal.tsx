@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Spinner } from './ui/Spinner';
+import { Badge } from './ui/Badge';
 import type { GlobalSearchResult } from '../types';
 
 export interface SearchModalProps {
@@ -72,11 +73,11 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
     (results?.practiceTasks.length || 0);
 
   return (
-    <div className="search-modal-backdrop" onClick={onClose}>
+    <div className="search-modal-backdrop animate-fade-in" onClick={onClose} role="dialog" aria-modal="true">
       <div className="search-modal-palette" onClick={(e) => e.stopPropagation()}>
         {/* Search Header Input */}
         <div className="search-palette-header">
-          <span className="search-palette-icon">🔍</span>
+          <span className="search-palette-icon" aria-hidden="true">🔍</span>
           <input
             ref={inputRef}
             type="text"
@@ -90,6 +91,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
             type="button"
             className="search-palette-close"
             onClick={onClose}
+            aria-label="Close search"
           >
             ESC
           </button>
@@ -108,34 +110,16 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
             <div className="search-palette-hint">
               <div className="hint-group">
                 <span className="hint-label">Quick Jumps:</span>
-                <button
-                  type="button"
-                  className="quick-search-chip"
-                  onClick={() => setQuery('kernel')}
-                >
-                  #kernel
-                </button>
-                <button
-                  type="button"
-                  className="quick-search-chip"
-                  onClick={() => setQuery('filesystem')}
-                >
-                  #filesystem
-                </button>
-                <button
-                  type="button"
-                  className="quick-search-chip"
-                  onClick={() => setQuery('strace')}
-                >
-                  strace
-                </button>
-                <button
-                  type="button"
-                  className="quick-search-chip"
-                  onClick={() => setQuery('systemd')}
-                >
-                  systemd
-                </button>
+                {['kernel', 'filesystem', 'strace', 'systemd'].map((term) => (
+                  <button
+                    key={term}
+                    type="button"
+                    className="quick-search-chip"
+                    onClick={() => setQuery(term)}
+                  >
+                    #{term}
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -160,7 +144,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                         <strong className="item-title">{p.title}</strong>
                         <span className="item-subtitle">{p.goal}</span>
                       </div>
-                      <span className="badge badge-sm badge-neutral">{p.targetLevel}</span>
+                      <Badge variant="neutral" size="sm">{p.targetLevel}</Badge>
                     </div>
                   ))}
                 </div>
@@ -184,7 +168,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                         <strong className="item-title">{t.title}</strong>
                         <span className="item-subtitle">{t.objective}</span>
                       </div>
-                      <span className="badge badge-sm badge-mastery">M{t.mastery}</span>
+                      <Badge variant="mastery" mastery={t.mastery} size="sm" />
                     </div>
                   ))}
                 </div>
@@ -236,7 +220,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                         <strong className="item-title">{task.title}</strong>
                         <span className="item-subtitle">{task.instructions}</span>
                       </div>
-                      <span className={`task-type-badge type-${task.type}`}>{task.type}</span>
+                      <span className={`task-badge-pill type-${task.type}`}>{task.type}</span>
                     </div>
                   ))}
                 </div>

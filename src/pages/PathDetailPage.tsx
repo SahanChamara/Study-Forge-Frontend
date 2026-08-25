@@ -1,11 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
+import { PageHeader } from '../components/layout/PageHeader';
 import { Button } from '../components/ui/Button';
 import { Card, CardHeader, CardBody } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
+import { StatusPill } from '../components/ui/StatusPill';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { Input } from '../components/ui/Input';
+import { Textarea } from '../components/ui/Textarea';
+import { Select } from '../components/ui/Select';
 import { Modal } from '../components/ui/Modal';
 import { Alert } from '../components/ui/Alert';
 import { Skeleton } from '../components/ui/Skeleton';
@@ -193,22 +197,23 @@ export const PathDetailPage: React.FC = () => {
 
   if (loading) {
     return (
-      <section className="path-detail-view">
-        <Skeleton variant="rectangular" height={160} style={{ marginBottom: 24 }} />
-        <Skeleton variant="rectangular" height={100} style={{ marginBottom: 16 }} />
-        <Skeleton variant="rectangular" height={100} />
-      </section>
+      <div className="path-detail-page-container">
+        <Skeleton variant="rectangular" height={180} />
+        <div className="mt-6">
+          <Skeleton variant="rectangular" height={120} />
+        </div>
+      </div>
     );
   }
 
   if (!path) {
     return (
-      <section className="path-detail-view">
+      <div className="path-detail-page-container">
         <Alert variant="error" message={error || 'Learning path not found.'} onRetry={loadPath} />
         <Link to="/paths" className="btn btn-secondary">
           ← Return to Paths Directory
         </Link>
-      </section>
+      </div>
     );
   }
 
@@ -218,9 +223,39 @@ export const PathDetailPage: React.FC = () => {
     path.topics?.filter((t) => ['learning', 'practicing', 'review'].includes(t.status)).length || 0;
 
   return (
-    <section className="path-detail-view">
-      {/* Path Header Hero */}
-      <Card className="path-hero-card" padded={false}>
+    <div className="path-detail-page-container animate-fade-in">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Learning Paths', href: '/paths' },
+          { label: path.title },
+        ]}
+        title={path.title}
+        description={path.goal}
+        actions={
+          <div className="path-detail-header-actions">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsEditPathModalOpen(true)}
+              leftIcon="✏️"
+            >
+              Edit Path
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleDeletePath}
+              className="text-danger"
+              leftIcon="🗑️"
+            >
+              Delete
+            </Button>
+          </div>
+        }
+      />
+
+      {/* Path Summary Hero Card */}
+      <Card className="path-summary-hero-card mb-6" padded={false}>
         <CardHeader>
           <div className="path-hero-eyebrow">
             <Badge variant="neutral">{path.targetLevel}</Badge>
@@ -228,27 +263,8 @@ export const PathDetailPage: React.FC = () => {
               {path.modules?.length || 0} Modules · {topicCount} Topics
             </span>
           </div>
-          <div className="path-header-actions">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setIsEditPathModalOpen(true)}
-            >
-              ✏️ Edit Path
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleDeletePath}
-              className="btn-delete-path"
-            >
-              🗑️ Delete
-            </Button>
-          </div>
         </CardHeader>
-        <CardBody className="path-hero-body">
-          <h1 className="path-hero-title">{path.title}</h1>
-          <p className="path-hero-goal">🎯 {path.goal}</p>
+        <CardBody>
           {path.description && <p className="path-hero-desc">{path.description}</p>}
 
           <div className="path-hero-progress-section">
@@ -266,7 +282,7 @@ export const PathDetailPage: React.FC = () => {
             <ProgressBar
               value={path.progressPercent || 0}
               label="Overall Completion"
-              variant={path.progressPercent && path.progressPercent >= 80 ? 'success' : 'accent'}
+              variant={path.progressPercent && path.progressPercent >= 80 ? 'success' : 'primary'}
               size="lg"
             />
           </div>
@@ -278,8 +294,8 @@ export const PathDetailPage: React.FC = () => {
       {/* Module Hierarchy Section Header */}
       <div className="module-section-header">
         <div>
-          <div className="eyebrow">CURRICULUM MODULES</div>
-          <h2>Ordered Modules & Hands-on Topics</h2>
+          <span className="eyebrow">CURRICULUM MODULES</span>
+          <h2>Ordered Modules &amp; Hands-on Topics</h2>
         </div>
         <div className="module-actions">
           {(!path.modules || path.modules.length === 0) && (
@@ -300,19 +316,19 @@ export const PathDetailPage: React.FC = () => {
 
       {/* Module List */}
       {moduleGroups.length > 0 ? (
-        <div className="module-list">
+        <div className="module-list-stack">
           {moduleGroups.map((m, mIndex) => (
-            <article className="module-card" key={m.id}>
-              <div className="module-heading">
-                <div className="module-heading-main">
-                  <span className="module-index-badge">Module {mIndex + 1}</span>
+            <Card key={m.id} className="module-card-block" padded={false}>
+              <CardHeader className="module-heading-bar">
+                <div className="module-heading-left">
+                  <span className="module-number-pill">Module {mIndex + 1}</span>
                   <div>
-                    <h3 className="module-title">{m.title}</h3>
-                    {m.description && <p className="module-desc">{m.description}</p>}
+                    <h3 className="module-title-text">{m.title}</h3>
+                    {m.description && <p className="module-subtext">{m.description}</p>}
                   </div>
                 </div>
                 <div className="module-heading-right">
-                  <span className="module-topic-count">{m.topics.length} topics</span>
+                  <span className="module-topic-counter">{m.topics.length} topics</span>
                   <Button
                     variant="secondary"
                     size="sm"
@@ -324,32 +340,33 @@ export const PathDetailPage: React.FC = () => {
                     ＋ Add Topic
                   </Button>
                 </div>
-              </div>
+              </CardHeader>
 
               {/* Topics inside Module */}
-              <div className="module-topics-list">
+              <div className="module-topics-body">
                 {m.topics.length > 0 ? (
                   m.topics.map((t, tIndex) => (
-                    <div className="topic-row" key={t.id}>
-                      <div className="topic-main">
-                        <div className="topic-title-wrapper">
-                          <span className="topic-order">{tIndex + 1}.</span>
+                    <div className="topic-table-row" key={t.id}>
+                      <div className="topic-info-cell">
+                        <div className="topic-title-flex">
+                          <span className="topic-order-num">{tIndex + 1}.</span>
                           <Link
                             to={`/paths/${path.id}/topics/${t.id}`}
-                            className="topic-link"
+                            className="topic-link-title"
                           >
                             <strong>{t.title}</strong>
                           </Link>
-                          <span className="topic-duration-badge">⏱️ {t.estimatedMinutes}m</span>
+                          <span className="topic-time-badge">⏱️ {t.estimatedMinutes}m</span>
                         </div>
-                        {t.objective && <small className="topic-objective">{t.objective}</small>}
+                        {t.objective && <small className="topic-objective-text">{t.objective}</small>}
                       </div>
 
-                      <div className="topic-controls">
-                        {/* Status Select with Visual Badge */}
-                        <div className="status-control-wrapper">
+                      <div className="topic-action-controls">
+                        {/* Status Select Control */}
+                        <div className="status-selector-box">
+                          <StatusPill status={t.status} size="sm" />
                           <select
-                            className={`topic-status-select select-${t.status}`}
+                            className="topic-inline-select"
                             value={t.status}
                             onChange={(e) =>
                               handleUpdateTopic(
@@ -358,6 +375,7 @@ export const PathDetailPage: React.FC = () => {
                                 t.mastery
                               )
                             }
+                            aria-label={`Update status for ${t.title}`}
                           >
                             <option value="not_started">Not Started</option>
                             <option value="learning">Learning</option>
@@ -367,10 +385,11 @@ export const PathDetailPage: React.FC = () => {
                           </select>
                         </div>
 
-                        {/* Mastery Level Selector */}
-                        <div className="mastery-control-wrapper">
+                        {/* Mastery Level Badge & Selector */}
+                        <div className="mastery-selector-box">
+                          <Badge variant="mastery" mastery={t.mastery} size="sm" />
                           <select
-                            className="topic-mastery-select"
+                            className="topic-inline-select"
                             value={t.mastery}
                             onChange={(e) =>
                               handleUpdateTopic(
@@ -379,28 +398,28 @@ export const PathDetailPage: React.FC = () => {
                                 Number(e.target.value) as MasteryLevel
                               )
                             }
-                            title="Mastery Scale (0: None to 5: Troubleshooting)"
+                            aria-label={`Update mastery for ${t.title}`}
                           >
-                            <option value={0}>M0</option>
-                            <option value={1}>M1</option>
-                            <option value={2}>M2</option>
-                            <option value={3}>M3</option>
-                            <option value={4}>M4</option>
-                            <option value={5}>M5</option>
+                            <option value={0}>M0 (None)</option>
+                            <option value={1}>M1 (Seen)</option>
+                            <option value={2}>M2 (Following)</option>
+                            <option value={3}>M3 (Guided)</option>
+                            <option value={4}>M4 (Independent)</option>
+                            <option value={5}>M5 (Mastered)</option>
                           </select>
                         </div>
 
                         <Link
                           to={`/paths/${path.id}/topics/${t.id}`}
-                          className="btn btn-secondary btn-sm topic-open-btn"
+                          className="btn btn-secondary btn-sm"
                         >
-                          Study →
+                          Study Workspace →
                         </Link>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="empty-module-message">
+                  <div className="empty-module-placeholder">
                     <span>No topics in this module yet.</span>
                     <button
                       type="button"
@@ -415,7 +434,7 @@ export const PathDetailPage: React.FC = () => {
                   </div>
                 )}
               </div>
-            </article>
+            </Card>
           ))}
         </div>
       ) : (
@@ -447,29 +466,24 @@ export const PathDetailPage: React.FC = () => {
             onChange={(e) => setEditGoal(e.target.value)}
             required
           />
-          <div className="form-field">
-            <label className="form-label">Description</label>
-            <textarea
-              className="form-input"
-              rows={3}
-              value={editDescription}
-              onChange={(e) => setEditDescription(e.target.value)}
-            />
-          </div>
-          <div className="form-field">
-            <label className="form-label">Target Level</label>
-            <select
-              className="form-input"
-              value={editTargetLevel}
-              onChange={(e) => setEditTargetLevel(e.target.value)}
-            >
-              <option value="foundation">Foundation</option>
-              <option value="practical">Practical</option>
-              <option value="job-ready">Job-Ready</option>
-              <option value="advanced">Advanced</option>
-            </select>
-          </div>
-          <div className="modal-actions">
+          <Textarea
+            label="Description"
+            rows={3}
+            value={editDescription}
+            onChange={(e) => setEditDescription(e.target.value)}
+          />
+          <Select
+            label="Target Level"
+            value={editTargetLevel}
+            onChange={(e) => setEditTargetLevel(e.target.value)}
+            options={[
+              { value: 'foundation', label: 'Foundation' },
+              { value: 'practical', label: 'Practical' },
+              { value: 'job-ready', label: 'Job-Ready' },
+              { value: 'advanced', label: 'Advanced' },
+            ]}
+          />
+          <div className="modal-form-actions">
             <Button
               type="button"
               variant="secondary"
@@ -498,17 +512,14 @@ export const PathDetailPage: React.FC = () => {
             onChange={(e) => setModuleTitle(e.target.value)}
             required
           />
-          <div className="form-field">
-            <label className="form-label">Module Description</label>
-            <textarea
-              className="form-input"
-              rows={2}
-              placeholder="Summary of topics covered in this module..."
-              value={moduleDescription}
-              onChange={(e) => setModuleDescription(e.target.value)}
-            />
-          </div>
-          <div className="modal-actions">
+          <Textarea
+            label="Module Description"
+            rows={2}
+            placeholder="Summary of topics covered in this module..."
+            value={moduleDescription}
+            onChange={(e) => setModuleDescription(e.target.value)}
+          />
+          <div className="modal-form-actions">
             <Button
               type="button"
               variant="secondary"
@@ -537,17 +548,14 @@ export const PathDetailPage: React.FC = () => {
             onChange={(e) => setTopicTitle(e.target.value)}
             required
           />
-          <div className="form-field">
-            <label className="form-label">Learning Objective (Outcome-focused)</label>
-            <textarea
-              className="form-input"
-              rows={2}
-              placeholder="e.g. Create, format, and resize physical volumes and logical volumes unaided."
-              value={topicObjective}
-              onChange={(e) => setTopicObjective(e.target.value)}
-              required
-            />
-          </div>
+          <Textarea
+            label="Learning Objective (Outcome-focused)"
+            rows={2}
+            placeholder="e.g. Create, format, and resize physical volumes and logical volumes unaided."
+            value={topicObjective}
+            onChange={(e) => setTopicObjective(e.target.value)}
+            required
+          />
           <Input
             label="Estimated Duration (Minutes)"
             type="number"
@@ -557,7 +565,7 @@ export const PathDetailPage: React.FC = () => {
             onChange={(e) => setTopicDuration(e.target.value)}
             required
           />
-          <div className="modal-actions">
+          <div className="modal-form-actions">
             <Button
               type="button"
               variant="secondary"
@@ -571,6 +579,6 @@ export const PathDetailPage: React.FC = () => {
           </div>
         </form>
       </Modal>
-    </section>
+    </div>
   );
 };

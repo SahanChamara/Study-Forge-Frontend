@@ -10,7 +10,8 @@ import { auth } from '../lib/firebase';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Alert } from '../components/ui/Alert';
-import { Card } from '../components/ui/Card';
+import { Card, CardBody } from '../components/ui/Card';
+import { SegmentedControl } from '../components/ui/SegmentedControl';
 
 type AuthMode = 'login' | 'register' | 'forgot';
 
@@ -78,132 +79,164 @@ export function LoginPage() {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-container">
-        {/* Brand Header */}
-        <div className="auth-brand">
-          <div className="brand-logo-large">SF</div>
-          <h2>StudyForge</h2>
-          <p className="auth-tagline">Personal Engineering Learning Operating System</p>
-        </div>
-
-        <Card className="auth-card-wrapper">
-          {/* Auth Tab Navigation */}
-          <div className="auth-tabs" role="tablist">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === 'login'}
-              className={`auth-tab ${mode === 'login' ? 'active' : ''}`}
-              onClick={() => {
-                setMode('login');
-                setError('');
-                setSuccessMessage('');
-              }}
-            >
-              Sign In
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === 'register'}
-              className={`auth-tab ${mode === 'register' ? 'active' : ''}`}
-              onClick={() => {
-                setMode('register');
-                setError('');
-                setSuccessMessage('');
-              }}
-            >
-              Create Account
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === 'forgot'}
-              className={`auth-tab ${mode === 'forgot' ? 'active' : ''}`}
-              onClick={() => {
-                setMode('forgot');
-                setError('');
-                setSuccessMessage('');
-              }}
-            >
-              Reset
-            </button>
+    <div className="auth-split-layout animate-fade-in">
+      {/* Left Feature Showcase Banner (Desktop) */}
+      <div className="auth-showcase-panel">
+        <div className="auth-showcase-content">
+          <div className="auth-brand-badge">
+            <div className="brand-logo-large">SF</div>
+            <div>
+              <span className="brand-title-large">StudyForge</span>
+              <span className="brand-badge-pill">v0.1.0 · Light Engine</span>
+            </div>
           </div>
 
-          {/* Feedback Alerts */}
-          {error && <Alert variant="error" message={error} className="auth-alert" />}
-          {successMessage && <Alert variant="success" message={successMessage} className="auth-alert" />}
+          <div className="showcase-hero-text">
+            <h1>Personal Engineering Learning Operating System</h1>
+            <p>
+              Master deep technical domains with structured curricula, 9-section recall notes, hands-on terminal verification, and automated spaced review.
+            </p>
+          </div>
 
-          {/* Auth Form */}
-          <form className="auth-form" onSubmit={handleSubmit}>
-            <Input
-              label="Email Address"
-              type="email"
-              placeholder="e.g. engineer@studyforge.local"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-
-            {mode !== 'forgot' && (
-              <Input
-                label="Password"
-                type="password"
-                placeholder="••••••••"
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                helperText={mode === 'register' ? 'Minimum 6 characters required' : undefined}
-              />
-            )}
-
-            {mode === 'register' && (
-              <Input
-                label="Confirm Password"
-                type="password"
-                placeholder="••••••••"
-                minLength={6}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
-            )}
-
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              loading={isSubmitting}
-              className="btn-auth-submit"
-            >
-              {mode === 'login'
-                ? 'Sign In to Workspace'
-                : mode === 'register'
-                ? 'Create StudyForge Account'
-                : 'Send Reset Instructions'}
-            </Button>
-          </form>
-
-          {/* Demo Login Shortcut */}
-          {isMockMode && (
-            <div className="demo-mode-section">
-              <div className="demo-divider">
-                <span>or explore with instant access</span>
+          <div className="showcase-highlights-grid">
+            <div className="showcase-highlight-item">
+              <span className="highlight-icon">🎯</span>
+              <div>
+                <strong>L-N-P-V-R Deliberate Practice</strong>
+                <p>Learn → Note from memory → Practice labs → Verify proof → Spaced recall review.</p>
               </div>
-              <Button
-                type="button"
-                variant="accent"
-                size="md"
-                onClick={handleDemoLogin}
-                className="btn-demo-login"
-              >
-                ⚡ Enter One-Click Demo
-              </Button>
             </div>
-          )}
-        </Card>
+
+            <div className="showcase-highlight-item">
+              <span className="highlight-icon">🏆</span>
+              <div>
+                <strong>6-Level Mastery Scale (M0–M5)</strong>
+                <p>Quantifiable progression from unfamiliar terms (M0) to expert root-cause troubleshooting (M5).</p>
+              </div>
+            </div>
+
+            <div className="showcase-highlight-item">
+              <span className="highlight-icon">⚡</span>
+              <div>
+                <strong>Hands-on Terminal Proof</strong>
+                <p>Attach real CLI execution evidence and test edge cases unaided.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="showcase-footer-tag">
+            <span>🔒 Zero-backend local mock mode &amp; optional Firebase cloud sync</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Form Card Panel */}
+      <div className="auth-form-panel">
+        <div className="auth-form-container">
+          <div className="mobile-brand-header">
+            <div className="brand-logo-large">SF</div>
+            <h2>StudyForge</h2>
+            <p className="auth-tagline">Personal Engineering Learning OS</p>
+          </div>
+
+          <Card className="auth-card-box">
+            <CardBody>
+              {/* Auth Mode Toggle */}
+              <div className="auth-mode-segmented-wrapper mb-6">
+                <SegmentedControl
+                  value={mode}
+                  onChange={(val) => {
+                    setMode(val as AuthMode);
+                    setError('');
+                    setSuccessMessage('');
+                  }}
+                  fullWidth
+                  options={[
+                    { id: 'login', label: 'Sign In' },
+                    { id: 'register', label: 'Create Account' },
+                    { id: 'forgot', label: 'Reset' },
+                  ]}
+                />
+              </div>
+
+              {/* Feedback Alerts */}
+              {error && <Alert variant="error" message={error} className="mb-4" onDismiss={() => setError('')} />}
+              {successMessage && <Alert variant="success" message={successMessage} className="mb-4" />}
+
+              {/* Auth Form */}
+              <form className="auth-form-body" onSubmit={handleSubmit}>
+                <Input
+                  label="Email Address"
+                  type="email"
+                  placeholder="e.g. engineer@studyforge.local"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+
+                {mode !== 'forgot' && (
+                  <Input
+                    label="Password"
+                    type="password"
+                    placeholder="••••••••"
+                    minLength={6}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    helperText={mode === 'register' ? 'Minimum 6 characters required' : undefined}
+                  />
+                )}
+
+                {mode === 'register' && (
+                  <Input
+                    label="Confirm Password"
+                    type="password"
+                    placeholder="••••••••"
+                    minLength={6}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                  />
+                )}
+
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  loading={isSubmitting}
+                  fullWidth
+                  className="mt-2"
+                >
+                  {mode === 'login'
+                    ? 'Sign In to Workspace'
+                    : mode === 'register'
+                    ? 'Create StudyForge Account'
+                    : 'Send Reset Instructions'}
+                </Button>
+              </form>
+
+              {/* Demo Login Shortcut */}
+              {isMockMode && (
+                <div className="auth-demo-section mt-6">
+                  <div className="demo-divider-line">
+                    <span>or explore with instant access</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="accent"
+                    size="md"
+                    fullWidth
+                    onClick={handleDemoLogin}
+                    leftIcon="⚡"
+                    className="btn-demo-trigger"
+                  >
+                    Enter One-Click Demo Workspace
+                  </Button>
+                </div>
+              )}
+            </CardBody>
+          </Card>
+        </div>
       </div>
     </div>
   );

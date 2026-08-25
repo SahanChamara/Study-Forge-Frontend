@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { PageHeader } from '../components/layout/PageHeader';
 import { Card, CardHeader, CardBody, CardFooter } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
+import { SearchInput } from '../components/ui/SearchInput';
+import { Select } from '../components/ui/Select';
+import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
 import { Alert } from '../components/ui/Alert';
 import { Skeleton } from '../components/ui/Skeleton';
@@ -100,54 +103,53 @@ export const NotesPage: React.FC = () => {
     return clean ? clean.split(/\s+/).length : 0;
   };
 
+  const pathOptions = useMemo(() => [
+    { value: 'all', label: 'All Learning Paths' },
+    ...paths.map((p) => ({ value: p.id, label: p.title })),
+  ], [paths]);
+
   return (
-    <section className="notes-page-view">
-      <header className="page-header">
-        <div>
-          <div className="eyebrow">KNOWLEDGE BASE</div>
-          <h1>Smart Notes</h1>
-          <p>Structured 9-section Markdown notes authored from memory across your curricula.</p>
-        </div>
-        <div className="notes-header-stats">
-          <span className="badge badge-accent">{notes.length} Total Notes</span>
-        </div>
-      </header>
+    <div className="notes-page-container animate-fade-in">
+      <PageHeader
+        eyebrow="KNOWLEDGE BASE"
+        title="Smart Notes"
+        description="Structured 9-section Markdown notes authored from memory across your curricula."
+        actions={
+          <Badge variant="accent">
+            {notes.length} Total Notes
+          </Badge>
+        }
+      />
 
       {error && <Alert variant="error" message={error} onDismiss={() => setError('')} />}
 
       {/* Filter and Search Bar */}
-      <div className="notes-filter-bar">
-        <div className="notes-search-wrapper">
-          <Input
+      <div className="notes-filter-bar mb-6">
+        <div className="notes-search-box">
+          <SearchInput
             placeholder="Search notes by concept, command syntax, or tag..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onClear={() => setSearchQuery('')}
           />
         </div>
 
-        <div className="notes-path-select-wrapper">
-          <select
-            className="notes-path-dropdown"
+        <div className="notes-path-select-box">
+          <Select
             value={selectedPathId}
             onChange={(e) => setSelectedPathId(e.target.value)}
-          >
-            <option value="all">All Learning Paths</option>
-            {paths.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.title}
-              </option>
-            ))}
-          </select>
+            options={pathOptions}
+          />
         </div>
       </div>
 
       {/* Tag Filter Chips */}
       {allTags.length > 0 && (
-        <div className="notes-tag-chips-bar">
-          <span className="tag-filter-label">Filter by Tag:</span>
+        <div className="notes-tag-chips-bar mb-6">
+          <span className="tag-filter-title">Filter by Tag:</span>
           <button
             type="button"
-            className={`tag-chip ${selectedTag === null ? 'active' : ''}`}
+            className={`tag-filter-chip ${selectedTag === null ? 'is-active' : ''}`}
             onClick={() => setSelectedTag(null)}
           >
             All Tags
@@ -156,7 +158,7 @@ export const NotesPage: React.FC = () => {
             <button
               key={tag}
               type="button"
-              className={`tag-chip ${selectedTag === tag ? 'active' : ''}`}
+              className={`tag-filter-chip ${selectedTag === tag ? 'is-active' : ''}`}
               onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
             >
               #{tag}
@@ -167,28 +169,34 @@ export const NotesPage: React.FC = () => {
 
       {/* Notes Content Grid */}
       {loading ? (
-        <div className="notes-grid-layout">
+        <div className="notes-catalog-grid">
           {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} variant="rectangular" height={220} />
+            <Card key={i}>
+              <CardBody>
+                <Skeleton variant="text" width="40%" height={16} />
+                <Skeleton variant="text" width="70%" height={24} />
+                <Skeleton variant="text" width="90%" height={60} />
+              </CardBody>
+            </Card>
           ))}
         </div>
       ) : filteredNotes.length > 0 ? (
-        <div className="notes-grid-layout">
+        <div className="notes-catalog-grid">
           {filteredNotes.map((note) => {
             const wordCount = getWordCount(note.contentMarkdown);
             const pathTitle = pathMap.get(note.pathId) || 'Learning Path';
             const topicTitle = topicMap.get(note.topicId) || 'Topic Note';
 
             return (
-              <Card key={note.id} className="note-hub-card" interactive>
+              <Card key={note.id} className="note-card-item" interactive>
                 <CardHeader>
-                  <div className="note-card-meta">
-                    <span className="note-path-tag">{pathTitle}</span>
-                    <span className="note-word-count">{wordCount} words</span>
+                  <div className="note-meta-badges">
+                    <span className="note-path-badge">{pathTitle}</span>
+                    <span className="note-word-count-badge">{wordCount} words</span>
                   </div>
                   <button
                     type="button"
-                    className="note-delete-btn"
+                    className="note-card-delete-btn"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDeleteNote(note.id);
@@ -199,23 +207,23 @@ export const NotesPage: React.FC = () => {
                   </button>
                 </CardHeader>
                 <CardBody onClick={() => setActivePreviewNote(note)}>
-                  <h3 className="note-card-title">{note.title}</h3>
-                  <p className="note-topic-subtitle">📍 {topicTitle}</p>
-                  <div className="note-snippet-preview">
+                  <h3 className="note-heading-text">{note.title}</h3>
+                  <p className="note-topic-loc">📍 {topicTitle}</p>
+                  <div className="note-text-snippet">
                     {note.contentMarkdown.slice(0, 180).replace(/#|```/g, '')}...
                   </div>
 
                   {note.tags && note.tags.length > 0 && (
-                    <div className="note-tags-list">
+                    <div className="note-tag-pills">
                       {note.tags.map((t, idx) => (
-                        <span key={idx} className="note-tag-badge">
+                        <span key={idx} className="note-pill-tag">
                           #{t}
                         </span>
                       ))}
                     </div>
                   )}
                 </CardBody>
-                <CardFooter>
+                <CardFooter className="note-card-footer-actions">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -227,7 +235,7 @@ export const NotesPage: React.FC = () => {
                     to={`/paths/${note.pathId}/topics/${note.topicId}`}
                     className="btn btn-secondary btn-sm"
                   >
-                    Open in Study Workspace →
+                    Study Workspace →
                   </Link>
                 </CardFooter>
               </Card>
@@ -238,12 +246,9 @@ export const NotesPage: React.FC = () => {
         <EmptyState
           icon="📝"
           title="No smart notes match your filter"
-          description="Try broadening your search criteria or open an active topic workspace to write new structured notes from memory."
-          action={
-            <Link to="/paths" className="btn btn-primary">
-              Browse Learning Paths →
-            </Link>
-          }
+          description="Try broadening your search query or open an active topic workspace to write new structured notes from memory."
+          actionLabel="Browse Learning Paths"
+          onAction={() => window.location.assign('/paths')}
         />
       )}
 
@@ -254,20 +259,20 @@ export const NotesPage: React.FC = () => {
           onClose={() => setActivePreviewNote(null)}
           title={activePreviewNote.title}
         >
-          <div className="note-modal-header-meta">
-            <span className="badge badge-neutral">
+          <div className="note-modal-meta mb-4">
+            <Badge variant="neutral">
               {pathMap.get(activePreviewNote.pathId) || 'Path'}
-            </span>
-            <span className="modal-topic-title">
+            </Badge>
+            <span className="modal-topic-sublabel">
               {topicMap.get(activePreviewNote.topicId) || 'Topic'}
             </span>
           </div>
 
-          <div className="note-modal-body-rendered">
+          <div className="note-modal-preview-body">
             <MarkdownPreview content={activePreviewNote.contentMarkdown} />
           </div>
 
-          <div className="modal-actions">
+          <div className="modal-form-actions mt-6">
             <Button
               variant="secondary"
               onClick={() => setActivePreviewNote(null)}
@@ -283,6 +288,6 @@ export const NotesPage: React.FC = () => {
           </div>
         </Modal>
       )}
-    </section>
+    </div>
   );
 };

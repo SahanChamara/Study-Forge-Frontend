@@ -1,25 +1,28 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { PageHeader } from '../components/layout/PageHeader';
 import { Button } from '../components/ui/Button';
 import { Card, CardHeader, CardBody, CardFooter } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
-import { Input } from '../components/ui/Input';
+import { SearchInput } from '../components/ui/SearchInput';
+import { SegmentedControl } from '../components/ui/SegmentedControl';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { Modal } from '../components/ui/Modal';
+import { Input } from '../components/ui/Input';
+import { Textarea } from '../components/ui/Textarea';
+import { Select } from '../components/ui/Select';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Skeleton } from '../components/ui/Skeleton';
 import { Alert } from '../components/ui/Alert';
 import type { LearningPath } from '../types';
-
-type LevelFilter = 'all' | 'foundation' | 'practical' | 'job-ready';
 
 export const PathsPage: React.FC = () => {
   const [paths, setPaths] = useState<LearningPath[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [levelFilter, setLevelFilter] = useState<LevelFilter>('all');
+  const [levelFilter, setLevelFilter] = useState('all');
 
   // Create Path Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -95,94 +98,97 @@ export const PathsPage: React.FC = () => {
   };
 
   return (
-    <section className="paths-view">
-      {/* Page Header */}
-      <header className="page-header">
-        <div>
-          <div className="eyebrow">CURRICULUM DIRECTORY</div>
-          <h1>Learning Paths</h1>
-          <p>Structured roadmaps with explicit module hierarchies and verified practice.</p>
-        </div>
-        <Button
-          variant="primary"
-          onClick={() => setIsCreateModalOpen(true)}
-          leftIcon="＋"
-        >
-          Create New Path
-        </Button>
-      </header>
+    <div className="paths-page-container animate-fade-in">
+      <PageHeader
+        eyebrow="CURRICULUM DIRECTORY"
+        title="Learning Paths"
+        description="Structured roadmaps with explicit module hierarchies and verified practice."
+        actions={
+          <Button
+            variant="primary"
+            onClick={() => setIsCreateModalOpen(true)}
+            leftIcon="＋"
+          >
+            Create New Path
+          </Button>
+        }
+      />
 
       {error && <Alert variant="error" message={error} onRetry={loadPaths} />}
 
       {/* Filter & Search Bar */}
-      <div className="paths-filter-bar">
-        <div className="search-input-wrapper">
-          <Input
+      <div className="catalog-filter-bar">
+        <div className="filter-search-box">
+          <SearchInput
             placeholder="Search paths by title, goal, or technology..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="paths-search-input"
+            onClear={() => setSearchQuery('')}
           />
         </div>
 
-        <div className="level-filter-chips">
-          {(['all', 'foundation', 'practical', 'job-ready'] as LevelFilter[]).map((lvl) => (
-            <button
-              key={lvl}
-              type="button"
-              className={`filter-chip ${levelFilter === lvl ? 'active' : ''}`}
-              onClick={() => setLevelFilter(lvl)}
-            >
-              {lvl === 'all' ? 'All Levels' : lvl.replace('-', ' ')}
-            </button>
-          ))}
+        <div className="filter-level-segments">
+          <SegmentedControl
+            options={[
+              { id: 'all', label: 'All Levels' },
+              { id: 'foundation', label: 'Foundation' },
+              { id: 'practical', label: 'Practical' },
+              { id: 'job-ready', label: 'Job-Ready' },
+            ]}
+            value={levelFilter}
+            onChange={setLevelFilter}
+            size="sm"
+          />
         </div>
       </div>
 
       {/* Path Cards Grid */}
       {loading ? (
-        <div className="grid">
+        <div className="paths-catalog-grid">
           {[1, 2, 3].map((i) => (
-            <Card key={i} className="path-card-skeleton">
-              <Skeleton variant="text" width="30%" height={14} style={{ marginBottom: 12 }} />
-              <Skeleton variant="text" width="80%" height={24} style={{ marginBottom: 8 }} />
-              <Skeleton variant="text" width="95%" height={16} style={{ marginBottom: 16 }} />
-              <Skeleton variant="rectangular" height={8} style={{ marginBottom: 16 }} />
-              <Skeleton variant="text" width="40%" height={14} />
+            <Card key={i}>
+              <CardBody>
+                <Skeleton variant="text" width="35%" height={16} />
+                <Skeleton variant="text" width="80%" height={24} />
+                <Skeleton variant="text" width="95%" height={16} />
+                <Skeleton variant="rectangular" height={8} />
+              </CardBody>
             </Card>
           ))}
         </div>
       ) : filteredPaths.length > 0 ? (
-        <div className="grid">
+        <div className="paths-catalog-grid">
           {filteredPaths.map((p) => {
             const topicCount = p.topics?.length || 0;
             const moduleCount = p.modules?.length || 0;
             const progress = p.progressPercent || 0;
 
             return (
-              <Link to={`/paths/${p.id}`} key={p.id} className="path-card-link">
-                <Card interactive padded={false} className="path-catalog-card">
+              <Link to={`/paths/${p.id}`} key={p.id} className="path-card-anchor">
+                <Card interactive padded={false} className="path-card-item">
                   <CardHeader>
                     <Badge variant="neutral">{p.targetLevel}</Badge>
-                    <span className="path-module-badge">{moduleCount} modules · {topicCount} topics</span>
+                    <span className="path-hierarchy-meta">
+                      {moduleCount} modules · {topicCount} topics
+                    </span>
                   </CardHeader>
                   <CardBody>
-                    <h2 className="path-card-title">{p.title}</h2>
-                    <p className="path-card-goal">{p.goal || p.description}</p>
-                    <div className="path-card-progress">
+                    <h2 className="path-title-heading">{p.title}</h2>
+                    <p className="path-goal-summary">{p.goal || p.description}</p>
+                    <div className="path-progress-box">
                       <ProgressBar
                         value={progress}
-                        label="Path Progress"
-                        variant={progress >= 80 ? 'success' : 'accent'}
+                        label="Path Mastery"
+                        variant={progress >= 80 ? 'success' : 'primary'}
                         size="sm"
                       />
                     </div>
                   </CardBody>
-                  <CardFooter className="path-card-footer">
-                    <span className="path-updated-text">
+                  <CardFooter className="path-card-footer-flex">
+                    <span className="path-updated-date">
                       Updated {new Date(p.updatedAt).toLocaleDateString()}
                     </span>
-                    <span className="path-explore-link">Open Path →</span>
+                    <span className="path-open-action">Open Path →</span>
                   </CardFooter>
                 </Card>
               </Link>
@@ -195,7 +201,7 @@ export const PathsPage: React.FC = () => {
           title={searchQuery || levelFilter !== 'all' ? 'No matching paths found' : 'No learning paths yet'}
           description={
             searchQuery || levelFilter !== 'all'
-              ? 'Try adjusting your search criteria or filter to see more learning paths.'
+              ? 'Try adjusting your search query or level filter to see more learning paths.'
               : 'Create your first structured curriculum or seed the reference Linux for DevOps roadmap.'
           }
           actionLabel="Create First Path"
@@ -216,7 +222,7 @@ export const PathsPage: React.FC = () => {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            helperText="The primary technology or domain you are mastering."
+            helperText="The primary technology or engineering domain you are mastering."
           />
 
           <Input
@@ -224,49 +230,42 @@ export const PathsPage: React.FC = () => {
             placeholder="e.g. Operate, automate, and troubleshoot Linux in production"
             value={goal}
             onChange={(e) => setGoal(e.target.value)}
-            helperText="What will you be able to build or do when complete?"
+            helperText="What will you be able to build or implement when completed?"
           />
 
-          <div className="form-field">
-            <label className="form-label">Description (Optional)</label>
-            <textarea
-              className="form-input"
-              rows={2}
-              placeholder="Brief summary of prerequisites and depth..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+          <Textarea
+            label="Description (Optional)"
+            placeholder="Brief summary of prerequisites and target depth..."
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+          />
+
+          <div className="form-grid-2col">
+            <Select
+              label="Target Level"
+              value={targetLevel}
+              onChange={(e) => setTargetLevel(e.target.value)}
+              options={[
+                { value: 'foundation', label: 'Foundation' },
+                { value: 'practical', label: 'Practical' },
+                { value: 'job-ready', label: 'Job-Ready' },
+                { value: 'advanced', label: 'Advanced' },
+              ]}
+            />
+
+            <Select
+              label="Starter Roadmap Template"
+              value={seedTemplate}
+              onChange={(e) => setSeedTemplate(e.target.value)}
+              options={[
+                { value: 'none', label: 'Empty Path (Build custom)' },
+                { value: 'linux-devops', label: 'Linux for DevOps (3 modules, 7 topics)' },
+              ]}
             />
           </div>
 
-          <div className="form-grid-2col">
-            <div className="form-field">
-              <label className="form-label">Target Level</label>
-              <select
-                className="form-input"
-                value={targetLevel}
-                onChange={(e) => setTargetLevel(e.target.value)}
-              >
-                <option value="foundation">Foundation</option>
-                <option value="practical">Practical</option>
-                <option value="job-ready">Job-Ready</option>
-                <option value="advanced">Advanced</option>
-              </select>
-            </div>
-
-            <div className="form-field">
-              <label className="form-label">Starter Roadmap Template</label>
-              <select
-                className="form-input"
-                value={seedTemplate}
-                onChange={(e) => setSeedTemplate(e.target.value)}
-              >
-                <option value="none">Empty Path (Build custom)</option>
-                <option value="linux-devops">Linux for DevOps (3 modules, 7 topics)</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="modal-actions">
+          <div className="modal-form-actions">
             <Button
               type="button"
               variant="secondary"
@@ -284,6 +283,6 @@ export const PathsPage: React.FC = () => {
           </div>
         </form>
       </Modal>
-    </section>
+    </div>
   );
 };

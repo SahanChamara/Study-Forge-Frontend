@@ -2,9 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../auth/useAuth';
+import { PageHeader } from '../components/layout/PageHeader';
 import { Card, CardHeader, CardBody } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
-import { ProgressBar } from '../components/ui/ProgressBar';
+import { StatusPill } from '../components/ui/StatusPill';
+import { CircularProgress } from '../components/ui/CircularProgress';
+import { Button } from '../components/ui/Button';
 import { Alert } from '../components/ui/Alert';
 import { Skeleton } from '../components/ui/Skeleton';
 import type { Topic } from '../types';
@@ -57,31 +60,30 @@ export const DashboardPage: React.FC = () => {
   const overallMasteryPercent =
     data && data.topics > 0 ? Math.round((data.mastered / data.topics) * 100) : 0;
 
-  const learnerName = user?.displayName || user?.email?.split('@')[0] || 'Engineer';
+  const learnerName = user?.displayName || user?.email?.split('@')[0] || 'Learner';
 
   return (
-    <section className="dashboard-view">
-      {/* Welcome Banner */}
-      <div className="dashboard-welcome">
-        <div>
-          <div className="eyebrow">COMMAND CENTER</div>
-          <h1>Welcome back, {learnerName}</h1>
-          <p>Continuous deliberate practice is the path to engineering mastery.</p>
-        </div>
-        <div className="streak-card">
-          <span className="streak-icon">🔥</span>
-          <div>
-            <strong>7 Day Streak</strong>
-            <small>Active learning habit</small>
+    <div className="dashboard-page-container animate-fade-in">
+      <PageHeader
+        eyebrow="COMMAND CENTER"
+        title={`Welcome back, ${learnerName}`}
+        description="Continuous deliberate practice is the path to engineering mastery."
+        actions={
+          <div className="dashboard-streak-pill">
+            <span className="streak-emoji" aria-hidden="true">🔥</span>
+            <div>
+              <strong>7 Day Streak</strong>
+              <small>Deliberate Practice</small>
+            </div>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {error && <Alert variant="error" message={error} onRetry={loadDashboard} />}
 
       {/* Spaced Review Due Prompt Banner */}
       {data && data.pendingReviews > 0 && (
-        <div className="review-due-banner">
+        <div className="review-due-banner mb-6">
           <div className="due-banner-content">
             <span className="due-icon">🔄</span>
             <div>
@@ -89,7 +91,7 @@ export const DashboardPage: React.FC = () => {
               <p>{data.pendingReviews} topics are scheduled for active retention reinforcement.</p>
             </div>
           </div>
-          <Link to="/review" className="btn btn-accent btn-sm">
+          <Link to="/review" className="btn btn-primary btn-sm">
             Start Recall Session →
           </Link>
         </div>
@@ -97,176 +99,263 @@ export const DashboardPage: React.FC = () => {
 
       {loading ? (
         <div className="dashboard-skeleton-grid">
-          <div className="stats">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div className="stat" key={i}>
-                <Skeleton variant="text" width="40%" height={32} />
-                <Skeleton variant="text" width="70%" height={16} />
-              </div>
-            ))}
-          </div>
-          <Skeleton variant="rectangular" height={180} />
-        </div>
-      ) : data ? (
-        <div className="dashboard-layout">
-          {/* Key Metric Stats Grid */}
-          <div className="stats">
-            <div className="stat">
-              <span className="stat-icon">🗺️</span>
-              <strong>{data.paths}</strong>
-              <span>Learning Paths</span>
-            </div>
-            <div className="stat">
-              <span className="stat-icon">📚</span>
-              <strong>{data.topics}</strong>
-              <span>Total Topics</span>
-            </div>
-            <div className="stat">
-              <span className="stat-icon">⚡</span>
-              <strong>{data.inProgress}</strong>
-              <span>In Progress</span>
-            </div>
-            <div className="stat">
-              <span className="stat-icon">🏆</span>
-              <strong className="stat-mastered">{data.mastered}</strong>
-              <span>Mastered Topics</span>
-            </div>
-            <div className="stat">
-              <span className="stat-icon">📝</span>
-              <strong>{data.notes}</strong>
-              <span>Smart Notes</span>
-            </div>
-            <div className="stat">
-              <span className="stat-icon">✅</span>
-              <strong>{data.completedPractice}</strong>
-              <span>Labs Completed</span>
-            </div>
-          </div>
-
-          {/* Active Topic Resume & Progress Section */}
-          <div className="dashboard-grid-2col">
-            {/* Continue Learning Resume Card */}
-            {data.activeTopic ? (
-              <Card className="resume-topic-card" padded={false}>
-                <CardHeader>
-                  <div className="eyebrow">CONTINUE LEARNING</div>
-                  <Badge variant={data.activeTopic.status} />
-                </CardHeader>
+          <div className="stats-metric-grid mb-6">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i}>
                 <CardBody>
-                  <small className="resume-path-title">
-                    {data.activeTopic.pathTitle || 'Active Path'}
-                  </small>
-                  <h2 className="resume-topic-title">{data.activeTopic.title}</h2>
-                  <p className="resume-topic-objective">{data.activeTopic.objective}</p>
-                  <div className="resume-meta">
-                    <span className="resume-duration">
-                      ⏱️ ~{data.activeTopic.estimatedMinutes} min estimated
-                    </span>
-                    <Badge variant="mastery" mastery={data.activeTopic.mastery} />
-                  </div>
-                  <Link
-                    to={`/paths/${data.activeTopic.pathId}/topics/${data.activeTopic.id}`}
-                    className="btn btn-primary resume-btn"
-                  >
-                    Resume Study Workspace →
-                  </Link>
+                  <Skeleton variant="text" width="50%" height={28} />
+                  <Skeleton variant="text" width="80%" height={16} />
                 </CardBody>
               </Card>
-            ) : (
-              <Card className="resume-topic-card">
-                <div className="eyebrow">GET STARTED</div>
-                <h2>Explore your first path</h2>
-                <p>Begin a structured roadmap to level up your engineering skills.</p>
-                <Link to="/paths" className="btn btn-accent">
-                  Browse Learning Paths →
-                </Link>
-              </Card>
-            )}
-
-            {/* Overall Mastery & Analytics Breakdown */}
-            <Card className="mastery-overview-card">
-              <div className="eyebrow">PROGRESS OVERVIEW</div>
-              <h2>Curriculum Mastery & Retention</h2>
-              <p>Topics mastered with unaided hands-on verification:</p>
-              <ProgressBar
-                value={overallMasteryPercent}
-                label="Overall Mastery Rate"
-                variant="accent"
-                size="lg"
-              />
-
-              {/* 6-Level Mastery Scale Distribution */}
-              {analytics && (
-                <div className="mastery-distribution-section">
-                  <div className="distribution-header">
-                    <span>Mastery Level Breakdown</span>
-                    <small>{analytics.retentionRate}% Retention Score</small>
-                  </div>
-                  <div className="mastery-levels-bar">
-                    {[0, 1, 2, 3, 4, 5].map((lvl) => {
-                      const count = analytics.masteryDist[lvl] || 0;
-                      return (
-                        <div key={lvl} className={`level-segment lvl-${lvl}`} title={`M${lvl}: ${count} topics`}>
-                          <span className="lvl-name">M{lvl}</span>
-                          <span className="lvl-count">{count}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
+            ))}
+          </div>
+          <Skeleton variant="rectangular" height={220} />
+        </div>
+      ) : data ? (
+        <div className="dashboard-content-stack">
+          {/* 4 Reference Metric Stat Cards */}
+          <div className="stats-metric-grid">
+            <Card className="stat-card">
+              <CardBody>
+                <div className="stat-card-top">
+                  <span className="stat-icon-badge">🗺️</span>
+                  <span className="stat-label">Active Paths</span>
                 </div>
-              )}
+                <strong className="stat-value">{data.paths}</strong>
+                <small className="stat-hint">Structured curriculums</small>
+              </CardBody>
+            </Card>
 
-              <div className="quick-actions-bar">
-                <Link to="/paths" className="btn btn-secondary btn-sm">
-                  🗺️ All Paths
-                </Link>
-                <Link to="/search" className="btn btn-secondary btn-sm">
-                  🔍 Global Search
-                </Link>
-                <Link to="/review" className="btn btn-secondary btn-sm">
-                  🔄 Review Queue ({data.pendingReviews})
-                </Link>
-              </div>
+            <Card className="stat-card">
+              <CardBody>
+                <div className="stat-card-top">
+                  <span className="stat-icon-badge">📚</span>
+                  <span className="stat-label">Topics Explored</span>
+                </div>
+                <strong className="stat-value">{data.topics}</strong>
+                <small className="stat-hint">{data.inProgress} currently in progress</small>
+              </CardBody>
+            </Card>
+
+            <Card className="stat-card">
+              <CardBody>
+                <div className="stat-card-top">
+                  <span className="stat-icon-badge">⚡</span>
+                  <span className="stat-label">Labs Verified</span>
+                </div>
+                <strong className="stat-value">{data.completedPractice}</strong>
+                <small className="stat-hint">Hands-on terminal tasks</small>
+              </CardBody>
+            </Card>
+
+            <Card className="stat-card">
+              <CardBody>
+                <div className="stat-card-top">
+                  <span className="stat-icon-badge">🏆</span>
+                  <span className="stat-label">Mastered (M4/M5)</span>
+                </div>
+                <strong className="stat-value stat-value-highlight">{data.mastered}</strong>
+                <small className="stat-hint">{overallMasteryPercent}% curriculum mastery</small>
+              </CardBody>
             </Card>
           </div>
 
-          {/* L-N-P-V-R Learning System Guide */}
-          <Card className="lnpvr-guide-card">
-            <div className="lnpvr-header">
-              <div className="eyebrow">THE STUDYFORGE METHOD</div>
-              <h2>Learn → Note → Practice → Verify → Review</h2>
-              <p>True engineering competence requires structured practice, not passive watching.</p>
+          {/* Main 2-Column Dashboard Sections */}
+          <div className="dashboard-main-grid">
+            {/* Left: Continue Learning & Active Activity */}
+            <div className="dashboard-left-col">
+              {data.activeTopic ? (
+                <Card className="active-learning-card" padded={false}>
+                  <CardHeader>
+                    <div>
+                      <span className="eyebrow">CONTINUE LEARNING</span>
+                      <h3 className="active-card-heading">Active Workspace</h3>
+                    </div>
+                    <StatusPill status={data.activeTopic.status} />
+                  </CardHeader>
+                  <CardBody>
+                    <span className="active-path-tag">
+                      {data.activeTopic.pathTitle || 'Learning Path'}
+                    </span>
+                    <h2 className="active-topic-title">{data.activeTopic.title}</h2>
+                    <p className="active-topic-objective">{data.activeTopic.objective}</p>
+                    <div className="active-topic-meta">
+                      <span className="meta-time">⏱️ ~{data.activeTopic.estimatedMinutes} min</span>
+                      <Badge variant="mastery" mastery={data.activeTopic.mastery} />
+                    </div>
+                    <div className="active-topic-actions">
+                      <Link
+                        to={`/paths/${data.activeTopic.pathId}/topics/${data.activeTopic.id}`}
+                        className="btn btn-primary"
+                      >
+                        Resume Study Workspace →
+                      </Link>
+                      <Link to="/practice" className="btn btn-secondary">
+                        Practice Labs
+                      </Link>
+                    </div>
+                  </CardBody>
+                </Card>
+              ) : (
+                <Card className="empty-active-card">
+                  <CardBody>
+                    <span className="eyebrow">GET STARTED</span>
+                    <h3>Start your first learning path</h3>
+                    <p>Select a structured engineering roadmap to begin hands-on mastery.</p>
+                    <Link to="/paths" className="btn btn-primary">
+                      Browse Learning Paths →
+                    </Link>
+                  </CardBody>
+                </Card>
+              )}
+
+              {/* Quick Navigation Cards */}
+              <div className="quick-access-grid">
+                <Card className="quick-access-card" interactive>
+                  <Link to="/notes" className="quick-card-link">
+                    <CardBody>
+                      <span className="quick-card-icon">📝</span>
+                      <div className="quick-card-text">
+                        <strong>Smart Notes</strong>
+                        <small>{data.notes} notes captured</small>
+                      </div>
+                    </CardBody>
+                  </Link>
+                </Card>
+
+                <Card className="quick-access-card" interactive>
+                  <Link to="/review" className="quick-card-link">
+                    <CardBody>
+                      <span className="quick-card-icon">🔄</span>
+                      <div className="quick-card-text">
+                        <strong>Recall Queue</strong>
+                        <small>{data.pendingReviews} reviews pending</small>
+                      </div>
+                    </CardBody>
+                  </Link>
+                </Card>
+              </div>
             </div>
-            <div className="lnpvr-steps">
-              <div className="lnpvr-step">
-                <div className="step-num">1</div>
-                <strong>Learn</strong>
-                <p>Focus on one concept with explicit outcomes.</p>
-              </div>
-              <div className="lnpvr-step">
-                <div className="step-num">2</div>
-                <strong>Note</strong>
-                <p>Capture mental models and commands from memory.</p>
-              </div>
-              <div className="lnpvr-step">
-                <div className="step-num">3</div>
-                <strong>Practice</strong>
-                <p>Execute real labs in your terminal.</p>
-              </div>
-              <div className="lnpvr-step">
-                <div className="step-num">4</div>
-                <strong>Verify</strong>
-                <p>Submit proof and test boundary conditions.</p>
-              </div>
-              <div className="lnpvr-step">
-                <div className="step-num">5</div>
-                <strong>Review</strong>
-                <p>Reinforce weak areas via active recall.</p>
-              </div>
+
+            {/* Right: Mastery Overview Donut & Level Distribution */}
+            <div className="dashboard-right-col">
+              <Card className="mastery-summary-card">
+                <CardHeader>
+                  <div className="card-header-title">
+                    <span className="eyebrow">PROGRESS OVERVIEW</span>
+                    <h3>Mastery &amp; Retention</h3>
+                  </div>
+                </CardHeader>
+                <CardBody>
+                  <div className="mastery-donut-wrapper">
+                    <CircularProgress
+                      value={overallMasteryPercent}
+                      variant="primary"
+                      size={110}
+                      strokeWidth={9}
+                      label="Mastery"
+                      sublabel={`${data.mastered} of ${data.topics}`}
+                    />
+                    <div className="donut-details">
+                      <div className="donut-metric-item">
+                        <span className="metric-dot dot-success" />
+                        <span className="metric-name">Mastered</span>
+                        <strong>{data.mastered}</strong>
+                      </div>
+                      <div className="donut-metric-item">
+                        <span className="metric-dot dot-primary" />
+                        <span className="metric-name">In Progress</span>
+                        <strong>{data.inProgress}</strong>
+                      </div>
+                      <div className="donut-metric-item">
+                        <span className="metric-dot dot-warning" />
+                        <span className="metric-name">Reviews Due</span>
+                        <strong>{data.pendingReviews}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {analytics && (
+                    <div className="mastery-scale-breakdown">
+                      <div className="scale-breakdown-header">
+                        <span>Mastery Scale Distribution</span>
+                        <small>{analytics.retentionRate}% Retention</small>
+                      </div>
+                      <div className="scale-bars-row">
+                        {[0, 1, 2, 3, 4, 5].map((lvl) => {
+                          const count = analytics.masteryDist[lvl] || 0;
+                          return (
+                            <div key={lvl} className={`scale-bar-item lvl-${lvl}`} title={`M${lvl}: ${count} topics`}>
+                              <span className="bar-tag">M{lvl}</span>
+                              <span className="bar-val">{count}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mastery-card-footer-btns">
+                    <Link to="/analytics">
+                      <Button variant="secondary" size="sm" fullWidth>
+                        View Full Learning Analytics →
+                      </Button>
+                    </Link>
+                  </div>
+                </CardBody>
+              </Card>
             </div>
+          </div>
+
+          {/* L-N-P-V-R Deliberate Practice Method Banner */}
+          <Card className="lnpvr-method-card">
+            <CardBody>
+              <div className="lnpvr-header-block">
+                <span className="eyebrow">THE STUDYFORGE ENGINE</span>
+                <h3>Learn → Note → Practice → Verify → Review</h3>
+                <p>Engineering competence requires verified execution, not passive consumption.</p>
+              </div>
+              <div className="lnpvr-step-cards">
+                <div className="lnpvr-pill">
+                  <span className="lnpvr-index">1</span>
+                  <div className="lnpvr-info">
+                    <strong>Learn</strong>
+                    <small>Focused concepts</small>
+                  </div>
+                </div>
+                <div className="lnpvr-pill">
+                  <span className="lnpvr-index">2</span>
+                  <div className="lnpvr-info">
+                    <strong>Note</strong>
+                    <small>Mental models</small>
+                  </div>
+                </div>
+                <div className="lnpvr-pill">
+                  <span className="lnpvr-index">3</span>
+                  <div className="lnpvr-info">
+                    <strong>Practice</strong>
+                    <small>Terminal labs</small>
+                  </div>
+                </div>
+                <div className="lnpvr-pill">
+                  <span className="lnpvr-index">4</span>
+                  <div className="lnpvr-info">
+                    <strong>Verify</strong>
+                    <small>Real proof</small>
+                  </div>
+                </div>
+                <div className="lnpvr-pill">
+                  <span className="lnpvr-index">5</span>
+                  <div className="lnpvr-info">
+                    <strong>Review</strong>
+                    <small>Active recall</small>
+                  </div>
+                </div>
+              </div>
+            </CardBody>
           </Card>
         </div>
       ) : null}
-    </section>
+    </div>
   );
 };

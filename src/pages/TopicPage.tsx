@@ -6,6 +6,9 @@ import { Card, CardHeader, CardBody } from '../components/ui/Card';
 import { Tabs } from '../components/ui/Tabs';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
+import { Textarea } from '../components/ui/Textarea';
+import { Select } from '../components/ui/Select';
+import { StatusPill } from '../components/ui/StatusPill';
 import { Alert } from '../components/ui/Alert';
 import { Skeleton } from '../components/ui/Skeleton';
 import { MarkdownPreview } from '../components/ui/MarkdownPreview';
@@ -329,10 +332,11 @@ export const TopicPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="workspace-loading">
-        <Skeleton variant="rectangular" height={60} style={{ marginBottom: 20 }} />
-        <Skeleton variant="rectangular" height={140} style={{ marginBottom: 20 }} />
-        <Skeleton variant="rectangular" height={400} />
+      <div className="workspace-loading-skeleton">
+        <Skeleton variant="rectangular" height={60} />
+        <div className="mt-4">
+          <Skeleton variant="rectangular" height={140} />
+        </div>
       </div>
     );
   }
@@ -349,19 +353,19 @@ export const TopicPage: React.FC = () => {
   }
 
   return (
-    <div className={`workspace-layout ${sidebarCollapsed ? 'sidebar-hidden' : ''}`}>
+    <div className={`workspace-split-layout ${sidebarCollapsed ? 'sidebar-is-collapsed' : ''} animate-fade-in`}>
       {/* Collapsible Curriculum Tree Sidebar */}
-      <aside className="workspace-curriculum-sidebar">
-        <div className="curriculum-sidebar-header">
-          <div className="curriculum-path-info">
-            <small className="curriculum-eyebrow">CURRICULUM TREE</small>
-            <h3 className="curriculum-path-title" title={path.title}>
+      <aside className="workspace-curriculum-tree" aria-label="Curriculum Sidebar">
+        <div className="curriculum-tree-top">
+          <div className="curriculum-path-text">
+            <span className="eyebrow">CURRICULUM TREE</span>
+            <strong className="curriculum-heading" title={path.title}>
               {path.title}
-            </h3>
+            </strong>
           </div>
           <button
             type="button"
-            className="sidebar-toggle-btn"
+            className="curriculum-collapse-btn"
             onClick={() => setSidebarCollapsed(true)}
             aria-label="Collapse curriculum tree"
             title="Collapse sidebar for distraction-free study"
@@ -370,28 +374,28 @@ export const TopicPage: React.FC = () => {
           </button>
         </div>
 
-        <div className="curriculum-modules-nav">
+        <div className="curriculum-tree-modules">
           {path.modules?.map((m, mIdx) => {
             const moduleTopics = path.topics?.filter((t) => t.moduleId === m.id) || [];
             return (
-              <div key={m.id} className="curriculum-module-group">
-                <div className="curriculum-module-header">
-                  <span className="curriculum-module-idx">M{mIdx + 1}</span>
-                  <span className="curriculum-module-name">{m.title}</span>
+              <div key={m.id} className="tree-module-block">
+                <div className="tree-module-title">
+                  <span className="tree-module-idx">M{mIdx + 1}</span>
+                  <span className="tree-module-name">{m.title}</span>
                 </div>
-                <div className="curriculum-topics-list">
+                <div className="tree-topics-sublist">
                   {moduleTopics.map((t) => {
                     const isSelected = t.id === topicId;
                     return (
                       <Link
                         key={t.id}
                         to={`/paths/${path.id}/topics/${t.id}`}
-                        className={`curriculum-topic-item ${isSelected ? 'is-active' : ''} status-${t.status}`}
+                        className={`tree-topic-item ${isSelected ? 'is-current' : ''}`}
                       >
-                        <span className="topic-status-dot" title={`Status: ${t.status}`} />
-                        <span className="topic-nav-title">{t.title}</span>
+                        <span className={`tree-topic-dot status-dot-${t.status}`} />
+                        <span className="tree-topic-name">{t.title}</span>
                         {t.status === 'mastered' && (
-                          <span className="topic-mastered-check" title="Mastered">✓</span>
+                          <span className="tree-topic-check" title="Mastered">✓</span>
                         )}
                       </Link>
                     );
@@ -404,51 +408,47 @@ export const TopicPage: React.FC = () => {
       </aside>
 
       {/* Main Learning Workspace */}
-      <main className="workspace-main-area">
-        {/* Top Control Bar & Breadcrumbs */}
-        <div className="workspace-topbar">
-          <div className="workspace-topbar-left">
+      <div className="workspace-center-panel">
+        {/* Top Control Bar & Sequence Nav */}
+        <div className="workspace-nav-bar">
+          <div className="workspace-nav-left">
             {sidebarCollapsed && (
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={() => setSidebarCollapsed(false)}
-                className="expand-sidebar-btn"
+                className="expand-curriculum-btn"
                 title="Expand Curriculum Tree"
               >
-                ▶ Modules
+                ▶ Curriculum
               </Button>
             )}
-            <div className="workspace-breadcrumbs">
+            <div className="workspace-breadcrumb-trail">
               <Link to={`/paths/${path.id}`}>{path.title}</Link>
-              <span className="separator">/</span>
+              <span className="bc-sep">/</span>
               <span>{currentModule?.title || 'Module'}</span>
-              <span className="separator">/</span>
-              <span className="current-topic-label">{currentTopic.title}</span>
+              <span className="bc-sep">/</span>
+              <span className="bc-current">{currentTopic.title}</span>
             </div>
           </div>
 
-          <div className="workspace-seq-nav">
-            {previousTopic ? (
+          <div className="workspace-nav-seq">
+            {previousTopic && (
               <Link
                 to={`/paths/${path.id}/topics/${previousTopic.id}`}
                 className="btn btn-secondary btn-sm"
               >
-                ← Prev: {previousTopic.title.slice(0, 16)}...
+                ← Prev: {previousTopic.title.slice(0, 14)}...
               </Link>
-            ) : (
-              <span className="nav-placeholder" />
             )}
 
-            {nextTopic ? (
+            {nextTopic && (
               <Link
                 to={`/paths/${path.id}/topics/${nextTopic.id}`}
                 className="btn btn-primary btn-sm"
               >
-                Next: {nextTopic.title.slice(0, 16)}... →
+                Next: {nextTopic.title.slice(0, 14)}... →
               </Link>
-            ) : (
-              <span className="nav-placeholder" />
             )}
           </div>
         </div>
@@ -456,46 +456,48 @@ export const TopicPage: React.FC = () => {
         {error && <Alert variant="error" message={error} onDismiss={() => setError('')} />}
 
         {/* Topic Header Hero */}
-        <header className="topic-hero-header">
-          <div className="topic-hero-top">
+        <Card className="topic-hero-card mb-6" padded={false}>
+          <CardHeader>
             <div>
-              <div className="eyebrow">
-                {currentModule?.title?.toUpperCase()} · {currentTopic.estimatedMinutes} MIN ESTIMATE
-              </div>
-              <h1 className="topic-title">{currentTopic.title}</h1>
+              <span className="eyebrow">
+                {currentModule?.title?.toUpperCase()} · ~{currentTopic.estimatedMinutes} MIN ESTIMATE
+              </span>
+              <h1 className="topic-hero-title-text">{currentTopic.title}</h1>
             </div>
 
             {/* Status & Mastery Controls */}
-            <div className="topic-lifecycle-controls">
-              {/* Status Selector Dropdown */}
-              <div className="control-group">
-                <label className="control-label">Status</label>
-                <select
-                  className={`topic-status-select select-${currentTopic.status}`}
-                  value={currentTopic.status}
-                  onChange={(e) =>
-                    handleUpdateTopicMetadata({
-                      status: e.target.value as TopicStatus,
-                    })
-                  }
-                >
-                  <option value="not_started">Not Started</option>
-                  <option value="learning">Learning</option>
-                  <option value="practicing">Practicing</option>
-                  <option value="review">In Review</option>
-                  <option value="mastered">Mastered</option>
-                </select>
+            <div className="topic-header-controls-group">
+              <div className="control-item">
+                <label className="control-item-label">Status</label>
+                <div className="status-badge-select">
+                  <StatusPill status={currentTopic.status} size="sm" />
+                  <select
+                    className="topic-dropdown-select"
+                    value={currentTopic.status}
+                    onChange={(e) =>
+                      handleUpdateTopicMetadata({
+                        status: e.target.value as TopicStatus,
+                      })
+                    }
+                    aria-label="Update topic status"
+                  >
+                    <option value="not_started">Not Started</option>
+                    <option value="learning">Learning</option>
+                    <option value="practicing">Practicing</option>
+                    <option value="review">In Review</option>
+                    <option value="mastered">Mastered</option>
+                  </select>
+                </div>
               </div>
 
-              {/* Mastery Level Selector Pills */}
-              <div className="control-group">
-                <label className="control-label">Mastery Scale</label>
-                <div className="mastery-pill-selector">
+              <div className="control-item">
+                <label className="control-item-label">Mastery Scale</label>
+                <div className="mastery-pills-row">
                   {([0, 1, 2, 3, 4, 5] as MasteryLevel[]).map((lvl) => (
                     <button
                       key={lvl}
                       type="button"
-                      className={`mastery-pill ${currentTopic.mastery === lvl ? 'active' : ''}`}
+                      className={`mastery-level-pill ${currentTopic.mastery === lvl ? 'is-active' : ''}`}
                       onClick={() => handleUpdateTopicMetadata({ mastery: lvl })}
                       title={masteryDescriptions[lvl]}
                     >
@@ -505,30 +507,32 @@ export const TopicPage: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </CardHeader>
 
-          {/* Outcome-Focused Objective Box */}
-          <div className="topic-objective-box">
-            <div className="objective-icon">🎯</div>
-            <div className="objective-content">
-              <strong className="objective-heading">Target Learning Outcome:</strong>
-              <p className="objective-text">{currentTopic.objective}</p>
-              {currentTopic.prerequisites && currentTopic.prerequisites.length > 0 && (
-                <div className="prerequisites-tags">
-                  <span className="prereq-label">Prerequisites:</span>
-                  {currentTopic.prerequisites.map((prereq, idx) => (
-                    <span key={idx} className="prereq-chip">
-                      {prereq}
-                    </span>
-                  ))}
-                </div>
-              )}
+          <CardBody>
+            {/* Outcome-Focused Objective Box */}
+            <div className="topic-objective-callout">
+              <div className="objective-icon-badge">🎯</div>
+              <div className="objective-text-content">
+                <strong>Target Learning Outcome:</strong>
+                <p>{currentTopic.objective}</p>
+                {currentTopic.prerequisites && currentTopic.prerequisites.length > 0 && (
+                  <div className="prereq-list">
+                    <span className="prereq-title">Prerequisites:</span>
+                    {currentTopic.prerequisites.map((prereq, idx) => (
+                      <span key={idx} className="prereq-tag">
+                        {prereq}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </header>
+          </CardBody>
+        </Card>
 
         {/* Tab Navigation */}
-        <div className="workspace-tabs-wrapper">
+        <div className="workspace-tabs-container mb-6">
           <Tabs
             tabs={[
               {
@@ -557,38 +561,40 @@ export const TopicPage: React.FC = () => {
 
         {/* Tab 1: Overview & Resources */}
         {activeTab === 'overview' && (
-          <div className="tab-content overview-tab-content">
+          <div className="tab-pane-content">
             {/* Session Shape Pacing Guide */}
-            <Card className="session-shape-card">
+            <Card className="session-shape-card mb-6">
               <CardHeader>
-                <div className="eyebrow">SESSION PACER</div>
-                <h3>Recommended 60-Minute Deliberate Practice Pacing</h3>
+                <div className="card-header-title">
+                  <span className="eyebrow">SESSION PACER</span>
+                  <h3>Recommended 60-Minute Deliberate Practice Pacing</h3>
+                </div>
               </CardHeader>
               <CardBody>
                 <div className="session-pacing-grid">
                   <div className="pacing-block">
-                    <span className="pacing-time">5 Min</span>
-                    <strong>1. Recall & Goal</strong>
-                    <p>Review objectives & test prior recall questions.</p>
+                    <span className="pacing-time-pill">5 Min</span>
+                    <strong>1. Recall &amp; Goal</strong>
+                    <p>Review objectives &amp; test prior recall questions.</p>
                   </div>
                   <div className="pacing-block">
-                    <span className="pacing-time">20 Min</span>
+                    <span className="pacing-time-pill">20 Min</span>
                     <strong>2. Deep Learn</strong>
-                    <p>Study docs & build mental models without distraction.</p>
+                    <p>Study docs &amp; build mental models without distraction.</p>
                   </div>
                   <div className="pacing-block">
-                    <span className="pacing-time">10 Min</span>
+                    <span className="pacing-time-pill">10 Min</span>
                     <strong>3. Smart Note</strong>
-                    <p>Synthesize concepts & command syntax from memory.</p>
+                    <p>Synthesize concepts &amp; command syntax from memory.</p>
                   </div>
                   <div className="pacing-block">
-                    <span className="pacing-time">20 Min</span>
+                    <span className="pacing-time-pill">20 Min</span>
                     <strong>4. Hands-on Lab</strong>
                     <p>Execute real tasks in terminal and test edge cases.</p>
                   </div>
                   <div className="pacing-block">
-                    <span className="pacing-time">5 Min</span>
-                    <strong>5. Verify & Rate</strong>
+                    <span className="pacing-time-pill">5 Min</span>
+                    <strong>5. Verify &amp; Rate</strong>
                     <p>Submit proof and update self-assessed mastery scale.</p>
                   </div>
                 </div>
@@ -598,9 +604,9 @@ export const TopicPage: React.FC = () => {
             {/* Resources Reference Hub */}
             <Card className="resources-hub-card">
               <CardHeader>
-                <div>
-                  <div className="eyebrow">REFERENCE DOCUMENTATION</div>
-                  <h3>Official Docs & Command References</h3>
+                <div className="card-header-title">
+                  <span className="eyebrow">REFERENCE DOCUMENTATION</span>
+                  <h3>Official Docs &amp; Command References</h3>
                 </div>
                 <Button
                   variant="secondary"
@@ -613,26 +619,26 @@ export const TopicPage: React.FC = () => {
               </CardHeader>
               <CardBody>
                 {currentTopic.resourceUrls && currentTopic.resourceUrls.length > 0 ? (
-                  <div className="resources-list">
+                  <div className="resources-link-list">
                     {currentTopic.resourceUrls.map((url, idx) => (
                       <a
                         key={idx}
                         href={url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="resource-item-link"
+                        className="resource-item-anchor"
                       >
                         <span className="resource-link-icon">🔗</span>
                         <div className="resource-link-details">
                           <strong className="resource-url-text">{url}</strong>
                           <small>External documentation reference</small>
                         </div>
-                        <span className="external-icon">↗</span>
+                        <span className="external-arrow-icon">↗</span>
                       </a>
                     ))}
                   </div>
                 ) : (
-                  <div className="empty-resources">
+                  <div className="empty-resources-box">
                     <p>No external resource links added for this topic yet.</p>
                     <Button
                       variant="secondary"
@@ -650,34 +656,33 @@ export const TopicPage: React.FC = () => {
 
         {/* Tab 2: Smart Notes */}
         {activeTab === 'notes' && (
-          <div className="tab-content notes-tab-content">
+          <div className="tab-pane-content">
             <Card className="smart-notes-card">
               <CardHeader>
-                <div className="notes-header-left">
-                  <div className="eyebrow">STRUCTURED MARKDOWN</div>
+                <div className="card-header-title">
+                  <span className="eyebrow">STRUCTURED MARKDOWN</span>
                   <h3>Smart Notes (Write from memory)</h3>
                 </div>
 
                 <div className="notes-header-controls">
-                  {/* Edit / Preview Toggle */}
-                  <div className="note-mode-toggle">
+                  <div className="note-mode-segmented">
                     <button
                       type="button"
-                      className={`mode-btn ${noteMode === 'edit' ? 'active' : ''}`}
+                      className={`mode-btn ${noteMode === 'edit' ? 'is-active' : ''}`}
                       onClick={() => setNoteMode('edit')}
                     >
                       ✏️ Edit
                     </button>
                     <button
                       type="button"
-                      className={`mode-btn ${noteMode === 'preview' ? 'active' : ''}`}
+                      className={`mode-btn ${noteMode === 'preview' ? 'is-active' : ''}`}
                       onClick={() => setNoteMode('preview')}
                     >
                       👁 Live Preview
                     </button>
                   </div>
 
-                  <div className="notes-save-status">
+                  <div className="notes-save-meta">
                     {hasUnsavedChanges ? (
                       <span className="status-unsaved">● Unsaved changes</span>
                     ) : lastSavedTime ? (
@@ -685,7 +690,7 @@ export const TopicPage: React.FC = () => {
                     ) : null}
 
                     {noteSavedFeedback && (
-                      <span className="saved-feedback-badge">✓ Saved!</span>
+                      <span className="saved-badge-pop">✓ Saved!</span>
                     )}
                   </div>
 
@@ -703,18 +708,18 @@ export const TopicPage: React.FC = () => {
               <CardBody>
                 {noteMode === 'edit' ? (
                   <>
-                    <div className="template-helper-bar">
-                      <span className="template-helper-label">Templates:</span>
+                    <div className="template-snippets-bar">
+                      <span className="snippets-label">Templates:</span>
                       <button
                         type="button"
-                        className="template-insert-btn"
+                        className="template-btn"
                         onClick={() => handleNoteContentChange(defaultNoteTemplate)}
                       >
-                        9-Section Smart Template
+                        9-Section Template
                       </button>
                       <button
                         type="button"
-                        className="template-insert-btn"
+                        className="template-btn"
                         onClick={() =>
                           handleNoteContentChange(
                             `${noteContent}\n\n## Mental model\n- Core concept:\n`
@@ -725,7 +730,7 @@ export const TopicPage: React.FC = () => {
                       </button>
                       <button
                         type="button"
-                        className="template-insert-btn"
+                        className="template-btn"
                         onClick={() =>
                           handleNoteContentChange(
                             `${noteContent}\n\n## Recall questions\n- Q: \n  A: \n`
@@ -737,19 +742,19 @@ export const TopicPage: React.FC = () => {
                     </div>
 
                     <textarea
-                      className="note-editor-workspace"
+                      className="note-markdown-textarea"
                       value={noteContent}
                       onChange={(e) => handleNoteContentChange(e.target.value)}
                       placeholder="Capture mental models, command syntax, pitfalls, and recall questions..."
                     />
 
-                    <div className="editor-status-bar">
+                    <div className="editor-footer-status">
                       <span>{noteMetrics.words} words · {noteMetrics.chars} chars</span>
-                      <span>Markdown formatting supported</span>
+                      <span>Markdown supported</span>
                     </div>
                   </>
                 ) : (
-                  <div className="note-preview-pane">
+                  <div className="note-preview-container">
                     <MarkdownPreview content={noteContent} />
                   </div>
                 )}
@@ -760,15 +765,15 @@ export const TopicPage: React.FC = () => {
 
         {/* Tab 3: Practice Labs */}
         {activeTab === 'practice' && (
-          <div className="tab-content practice-tab-content">
+          <div className="tab-pane-content">
             <Card className="practice-labs-card">
               <CardHeader>
-                <div>
-                  <div className="eyebrow">HANDS-ON LABS</div>
+                <div className="card-header-title">
+                  <span className="eyebrow">HANDS-ON LABS</span>
                   <h3>Prove Mastery with Practice Tasks</h3>
                 </div>
                 <Button
-                  variant="accent"
+                  variant="primary"
                   size="sm"
                   onClick={() => setIsAddTaskModalOpen(true)}
                   leftIcon="＋"
@@ -778,7 +783,7 @@ export const TopicPage: React.FC = () => {
               </CardHeader>
 
               <CardBody>
-                <div className="workspace-task-list">
+                <div className="practice-tasks-stack">
                   {tasks.length > 0 ? (
                     tasks.map((task) => {
                       const isExpanded = expandedTaskId === task.id;
@@ -790,33 +795,33 @@ export const TopicPage: React.FC = () => {
                       return (
                         <div
                           key={task.id}
-                          className={`workspace-task-card ${task.status === 'done' ? 'is-done' : ''}`}
+                          className={`practice-task-item ${task.status === 'done' ? 'is-completed' : ''}`}
                         >
-                          <div className="task-row-main">
-                            <label className="task-checkbox-label">
+                          <div className="task-row-content">
+                            <label className="task-check-wrapper">
                               <input
                                 type="checkbox"
                                 checked={task.status === 'done'}
                                 onChange={() => handleToggleTask(task)}
                               />
-                              <span className="task-checkbox-custom" />
+                              <span className="task-checkbox-indicator" />
                             </label>
 
-                            <div className="task-details">
-                              <div className="task-header-line">
-                                <span className={`task-type-badge type-${task.type}`}>
+                            <div className="task-body-content">
+                              <div className="task-title-line">
+                                <span className={`task-badge-pill type-${task.type}`}>
                                   {task.type}
                                 </span>
-                                <strong className="task-title-text">{task.title}</strong>
+                                <strong className="task-title-heading">{task.title}</strong>
                               </div>
 
                               {task.instructions && (
-                                <p className="task-instructions-snippet">{task.instructions}</p>
+                                <p className="task-instructions-text">{task.instructions}</p>
                               )}
 
                               {task.verificationCriteria && (
-                                <div className="task-criteria-inline">
-                                  <span className="criteria-tag">Criteria:</span>
+                                <div className="task-criteria-callout">
+                                  <span className="criteria-heading">Criteria:</span>
                                   <span>{task.verificationCriteria}</span>
                                 </div>
                               )}
@@ -824,7 +829,7 @@ export const TopicPage: React.FC = () => {
 
                             <button
                               type="button"
-                              className="task-evidence-toggle"
+                              className="task-evidence-toggle-btn"
                               onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}
                             >
                               {isExpanded ? 'Hide Proof ▲' : task.evidence ? 'View Proof ✓' : 'Add Proof ＋'}
@@ -833,10 +838,10 @@ export const TopicPage: React.FC = () => {
 
                           {/* Expandable Evidence Drawer */}
                           {isExpanded && (
-                            <div className="task-evidence-drawer">
-                              <label className="evidence-label">Terminal Output / Evidence Proof:</label>
+                            <div className="task-evidence-subpanel">
+                              <label className="evidence-panel-label">Terminal Output / Evidence Proof:</label>
                               <textarea
-                                className="evidence-textarea"
+                                className="evidence-text-input"
                                 rows={4}
                                 placeholder="Paste terminal output, command exit code, or verification proof..."
                                 value={currentEvidence}
@@ -847,7 +852,7 @@ export const TopicPage: React.FC = () => {
                                   })
                                 }
                               />
-                              <div className="evidence-footer">
+                              <div className="evidence-footer-actions">
                                 <small>Submitted proof verifies practical execution unaided.</small>
                                 <Button
                                   variant="primary"
@@ -864,7 +869,7 @@ export const TopicPage: React.FC = () => {
                       );
                     })
                   ) : (
-                    <div className="empty-tasks-box">
+                    <div className="empty-tasks-placeholder">
                       <p>No practice labs created for this topic yet.</p>
                       <Button
                         variant="secondary"
@@ -882,19 +887,17 @@ export const TopicPage: React.FC = () => {
         )}
 
         {/* Bottom Workflow Action Bar */}
-        <div className="workspace-bottom-bar">
-          <div className="bottom-bar-left">
-            <Link to={`/paths/${path.id}`} className="btn btn-secondary btn-sm">
-              ← Return to Path Curriculum
-            </Link>
-          </div>
-          <div className="bottom-bar-right">
+        <div className="workspace-bottom-dock">
+          <Link to={`/paths/${path.id}`} className="btn btn-secondary btn-sm">
+            ← Return to Path Curriculum
+          </Link>
+          <div className="bottom-dock-actions">
             <Button
               variant="accent"
               size="md"
               onClick={handleMarkMastered}
             >
-              🏆 Mark as Mastered (M4) & Proceed
+              🏆 Mark Mastered (M4) & Proceed
             </Button>
             {nextTopic && (
               <Link
@@ -906,7 +909,7 @@ export const TopicPage: React.FC = () => {
             )}
           </div>
         </div>
-      </main>
+      </div>
 
       {/* Add Resource Link Modal */}
       <Modal
@@ -924,7 +927,7 @@ export const TopicPage: React.FC = () => {
             required
             helperText="Link to official documentation, standard specifications, or cheatsheets."
           />
-          <div className="modal-actions">
+          <div className="modal-form-actions">
             <Button
               type="button"
               variant="secondary"
@@ -958,44 +961,36 @@ export const TopicPage: React.FC = () => {
             required
           />
 
-          <div className="form-field">
-            <label className="form-label">Task Type</label>
-            <select
-              className="form-input"
-              value={newTaskType}
-              onChange={(e) => setNewTaskType(e.target.value as PracticeTaskType)}
-            >
-              <option value="command">Command (CLI recipe)</option>
-              <option value="configuration">Configuration (File modification)</option>
-              <option value="troubleshooting">Troubleshooting (Root cause fix)</option>
-              <option value="lab">Lab (Multi-step scenario)</option>
-              <option value="conceptual">Conceptual (Diagram & review)</option>
-            </select>
-          </div>
+          <Select
+            label="Task Type"
+            value={newTaskType}
+            onChange={(e) => setNewTaskType(e.target.value as PracticeTaskType)}
+            options={[
+              { value: 'command', label: 'Command (CLI recipe)' },
+              { value: 'configuration', label: 'Configuration (File modification)' },
+              { value: 'troubleshooting', label: 'Troubleshooting (Root cause fix)' },
+              { value: 'lab', label: 'Lab (Multi-step scenario)' },
+              { value: 'conceptual', label: 'Conceptual (Diagram & review)' },
+            ]}
+          />
 
-          <div className="form-field">
-            <label className="form-label">Instructions</label>
-            <textarea
-              className="form-input"
-              rows={3}
-              placeholder="Step-by-step instructions or target problem statement..."
-              value={newTaskInstructions}
-              onChange={(e) => setNewTaskInstructions(e.target.value)}
-            />
-          </div>
+          <Textarea
+            label="Instructions"
+            rows={3}
+            placeholder="Step-by-step instructions or target problem statement..."
+            value={newTaskInstructions}
+            onChange={(e) => setNewTaskInstructions(e.target.value)}
+          />
 
-          <div className="form-field">
-            <label className="form-label">Verification Criteria</label>
-            <textarea
-              className="form-input"
-              rows={2}
-              placeholder="Proof of completion: command produces expected return code or terminal output"
-              value={newTaskCriteria}
-              onChange={(e) => setNewTaskCriteria(e.target.value)}
-            />
-          </div>
+          <Textarea
+            label="Verification Criteria"
+            rows={2}
+            placeholder="Proof of completion: command produces expected return code or terminal output"
+            value={newTaskCriteria}
+            onChange={(e) => setNewTaskCriteria(e.target.value)}
+          />
 
-          <div className="modal-actions">
+          <div className="modal-form-actions">
             <Button
               type="button"
               variant="secondary"

@@ -5,6 +5,7 @@ import { LoginPage } from './pages/LoginPage';
 import { PathsPage } from './pages/PathsPage';
 import { PathDetailPage } from './pages/PathDetailPage';
 import { TopicPage } from './pages/TopicPage';
+import { BoardPage } from './pages/BoardPage';
 import { NotesPage } from './pages/NotesPage';
 import { PracticePage } from './pages/PracticePage';
 import { ReviewPage } from './pages/ReviewPage';
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="/paths" element={<PathsPage />} />
           <Route path="/paths/:id" element={<PathDetailPage />} />
           <Route path="/paths/:pathId/topics/:topicId" element={<TopicPage />} />
+          <Route path="/board" element={<BoardPage />} />
           <Route path="/notes" element={<NotesPage />} />
           <Route path="/practice" element={<PracticePage />} />
           <Route path="/review" element={<ReviewPage />} />

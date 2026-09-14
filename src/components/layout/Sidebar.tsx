@@ -15,6 +15,7 @@ export interface NavItemDef {
 const mainNavItems: NavItemDef[] = [
   { label: 'Dashboard', to: '/', icon: '📊', end: true },
   { label: 'My Learning', to: '/paths', icon: '🗺️' },
+  { label: 'Study Board', to: '/board', icon: '📋' },
   { label: 'Practice Labs', to: '/practice', icon: '⚡' },
   { label: 'Smart Notes', to: '/notes', icon: '📝' },
   { label: 'Spaced Review', to: '/review', icon: '🔄' },

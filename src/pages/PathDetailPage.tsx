@@ -7,6 +7,7 @@ import { Card, CardHeader, CardBody } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { StatusPill } from '../components/ui/StatusPill';
 import { ProgressBar } from '../components/ui/ProgressBar';
+import { SegmentedControl } from '../components/ui/SegmentedControl';
 import { Input } from '../components/ui/Input';
 import { Textarea } from '../components/ui/Textarea';
 import { Select } from '../components/ui/Select';
@@ -15,6 +16,13 @@ import { Alert } from '../components/ui/Alert';
 import { Skeleton } from '../components/ui/Skeleton';
 import { EmptyState } from '../components/ui/EmptyState';
 import type { LearningPath, MasteryLevel, ModuleItem, Topic, TopicStatus } from '../types';
+
+const boardColumns: { status: TopicStatus; title: string; color: string }[] = [
+  { status: 'not_started', title: 'Not Started', color: 'var(--color-text-muted)' },
+  { status: 'learning', title: 'Learning', color: 'var(--color-info)' },
+  { status: 'practicing', title: 'Practicing', color: 'var(--color-primary)' },
+  { status: 'mastered', title: 'Mastered', color: 'var(--color-success)' },
+];
 
 export const PathDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -100,6 +108,38 @@ export const PathDetailPage: React.FC = () => {
     const totalMinutes = path.topics.reduce((acc, t) => acc + (t.estimatedMinutes || 45), 0);
     return (totalMinutes / 60).toFixed(1);
   }, [path?.topics]);
+
+  const [viewMode, setViewMode] = useState<'list' | 'board' | 'timeline'>('list');
+
+  const enrichedTopics = useMemo(() => {
+    if (!path?.topics) return [];
+    return path.topics.map((t) => ({
+      ...t,
+      moduleTitle: path.modules?.find((m) => m.id === t.moduleId)?.title || 'Module',
+    }));
+  }, [path]);
+
+  const timelineItems = useMemo(() => {
+    const startTimeHours = 9;
+    let accumulatedMinutes = 0;
+
+    return enrichedTopics.map((t) => {
+      const startTotalMins = startTimeHours * 60 + accumulatedMinutes;
+      const endTotalMins = startTotalMins + (t.estimatedMinutes || 45);
+      accumulatedMinutes += (t.estimatedMinutes || 45) + 15;
+
+      const formatTime = (totalMins: number) => {
+        const h = Math.floor(totalMins / 60) % 24;
+        const m = totalMins % 60;
+        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+      };
+
+      return {
+        ...t,
+        timeSlot: `${formatTime(startTotalMins)} - ${formatTime(endTotalMins)}`,
+      };
+    });
+  }, [enrichedTopics]);
 
   const handleSeedRoadmap = async () => {
     try {
@@ -379,139 +419,324 @@ export const PathDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Module List */}
-      {moduleGroups.length > 0 ? (
-        <div className="module-list-stack">
-          {moduleGroups.map((m, mIndex) => (
-            <Card key={m.id} className="module-card-block" padded={false}>
-              <CardHeader className="module-heading-bar">
-                <div className="module-heading-left">
-                  <span className="module-number-pill">Module {mIndex + 1}</span>
-                  <div>
-                    <h3 className="module-title-text">{m.title}</h3>
-                    {m.description && <p className="module-subtext">{m.description}</p>}
-                  </div>
-                </div>
-                <div className="module-heading-right">
-                  <span className="module-topic-counter">
-                    {m.masteredCount}/{m.topics.length} Mastered
-                  </span>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => {
-                      setActiveModuleIdForTopic(m.id);
-                      setIsAddTopicModalOpen(true);
-                    }}
-                  >
-                    ＋ Add Topic
-                  </Button>
-                </div>
-              </CardHeader>
+      {/* Curriculum View Mode Switcher: List | Board | Timeline */}
+      <div className="curriculum-view-toolbar-row mb-6">
+        <SegmentedControl
+          options={[
+            { id: 'list', label: 'Curriculum Hierarchy', icon: '☰' },
+            { id: 'board', label: 'Board View', icon: '📋' },
+            { id: 'timeline', label: 'Timeline View', icon: '⏱️' },
+          ]}
+          value={viewMode}
+          onChange={(v) => setViewMode(v as 'list' | 'board' | 'timeline')}
+          size="md"
+        />
+      </div>
 
-              {/* Topics inside Module */}
-              <div className="module-topics-body">
-                {m.topics.length > 0 ? (
-                  m.topics.map((t, tIndex) => (
-                    <div className="topic-table-row" key={t.id}>
-                      <div className="topic-info-cell">
-                        <div className="topic-title-flex">
-                          <span className="topic-order-num">{tIndex + 1}.</span>
-                          <Link
-                            to={`/paths/${path.id}/topics/${t.id}`}
-                            className="topic-link-title"
-                          >
-                            <strong>{t.title}</strong>
-                          </Link>
-                          <span className="topic-time-badge">⏱️ {t.estimatedMinutes}m</span>
-                        </div>
-                        {t.objective && <small className="topic-objective-text">{t.objective}</small>}
-                      </div>
-
-                      <div className="topic-action-controls">
-                        {/* Status Select Control */}
-                        <div className="status-selector-box">
-                          <StatusPill status={t.status} size="sm" />
-                          <select
-                            className="topic-inline-select"
-                            value={t.status}
-                            onChange={(e) =>
-                              handleUpdateTopic(
-                                t,
-                                e.target.value as TopicStatus,
-                                t.mastery
-                              )
-                            }
-                            aria-label={`Update status for ${t.title}`}
-                          >
-                            <option value="not_started">Not Started</option>
-                            <option value="learning">Learning</option>
-                            <option value="practicing">Practicing</option>
-                            <option value="review">Review</option>
-                            <option value="mastered">Mastered</option>
-                          </select>
-                        </div>
-
-                        {/* Mastery Level Badge & Selector */}
-                        <div className="mastery-selector-box">
-                          <Badge variant="mastery" mastery={t.mastery} size="sm" />
-                          <select
-                            className="topic-inline-select"
-                            value={t.mastery}
-                            onChange={(e) =>
-                              handleUpdateTopic(
-                                t,
-                                t.status,
-                                Number(e.target.value) as MasteryLevel
-                              )
-                            }
-                            aria-label={`Update mastery for ${t.title}`}
-                          >
-                            <option value={0}>M0 (None)</option>
-                            <option value={1}>M1 (Seen)</option>
-                            <option value={2}>M2 (Following)</option>
-                            <option value={3}>M3 (Guided)</option>
-                            <option value={4}>M4 (Independent)</option>
-                            <option value={5}>M5 (Mastered)</option>
-                          </select>
-                        </div>
-
-                        <Link
-                          to={`/paths/${path.id}/topics/${t.id}`}
-                          className="btn btn-secondary btn-sm topic-workspace-btn"
-                        >
-                          Study Workspace →
-                        </Link>
-                      </div>
+      {/* 1. Hierarchy List View */}
+      {viewMode === 'list' && (
+        moduleGroups.length > 0 ? (
+          <div className="module-list-stack">
+            {moduleGroups.map((m, mIndex) => (
+              <Card key={m.id} className="module-card-block" padded={false}>
+                <CardHeader className="module-heading-bar">
+                  <div className="module-heading-left">
+                    <span className="module-number-pill">Module {mIndex + 1}</span>
+                    <div>
+                      <h3 className="module-title-text">{m.title}</h3>
+                      {m.description && <p className="module-subtext">{m.description}</p>}
                     </div>
-                  ))
-                ) : (
-                  <div className="empty-module-placeholder">
-                    <span>No topics in this module yet.</span>
-                    <button
-                      type="button"
-                      className="link-button"
+                  </div>
+                  <div className="module-heading-right">
+                    <span className="module-topic-counter">
+                      {m.masteredCount}/{m.topics.length} Mastered
+                    </span>
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={() => {
                         setActiveModuleIdForTopic(m.id);
                         setIsAddTopicModalOpen(true);
                       }}
                     >
-                      Add first topic
-                    </button>
+                      ＋ Add Topic
+                    </Button>
                   </div>
-                )}
-              </div>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <EmptyState
-          icon="📚"
-          title="Curriculum is empty"
-          description="Build structured learning by adding your first module or seed the standard Linux DevOps roadmap."
-          actionLabel="Seed Reference Roadmap"
-          onAction={handleSeedRoadmap}
-        />
+                </CardHeader>
+
+                {/* Topics inside Module */}
+                <div className="module-topics-body">
+                  {m.topics.length > 0 ? (
+                    m.topics.map((t, tIndex) => (
+                      <div className="topic-table-row" key={t.id}>
+                        <div className="topic-info-cell">
+                          <div className="topic-title-flex">
+                            <span className="topic-order-num">{tIndex + 1}.</span>
+                            <Link
+                              to={`/paths/${path.id}/topics/${t.id}`}
+                              className="topic-link-title"
+                            >
+                              <strong>{t.title}</strong>
+                            </Link>
+                            <span className="topic-time-badge">⏱️ {t.estimatedMinutes}m</span>
+                          </div>
+                          {t.objective && <small className="topic-objective-text">{t.objective}</small>}
+                        </div>
+
+                        <div className="topic-action-controls">
+                          {/* Status Select Control */}
+                          <div className="status-selector-box">
+                            <StatusPill status={t.status} size="sm" />
+                            <select
+                              className="topic-inline-select"
+                              value={t.status}
+                              onChange={(e) =>
+                                handleUpdateTopic(
+                                  t,
+                                  e.target.value as TopicStatus,
+                                  t.mastery
+                                )
+                              }
+                              aria-label={`Update status for ${t.title}`}
+                            >
+                              <option value="not_started">Not Started</option>
+                              <option value="learning">Learning</option>
+                              <option value="practicing">Practicing</option>
+                              <option value="review">Review</option>
+                              <option value="mastered">Mastered</option>
+                            </select>
+                          </div>
+
+                          {/* Mastery Level Badge & Selector */}
+                          <div className="mastery-selector-box">
+                            <Badge variant="mastery" mastery={t.mastery} size="sm" />
+                            <select
+                              className="topic-inline-select"
+                              value={t.mastery}
+                              onChange={(e) =>
+                                handleUpdateTopic(
+                                  t,
+                                  t.status,
+                                  Number(e.target.value) as MasteryLevel
+                                )
+                              }
+                              aria-label={`Update mastery for ${t.title}`}
+                            >
+                              <option value={0}>M0 (None)</option>
+                              <option value={1}>M1 (Seen)</option>
+                              <option value={2}>M2 (Following)</option>
+                              <option value={3}>M3 (Guided)</option>
+                              <option value={4}>M4 (Independent)</option>
+                              <option value={5}>M5 (Mastered)</option>
+                            </select>
+                          </div>
+
+                          <Link
+                            to={`/paths/${path.id}/topics/${t.id}`}
+                            className="btn btn-secondary btn-sm topic-workspace-btn"
+                          >
+                            Study Workspace →
+                          </Link>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="empty-module-placeholder">
+                      <span>No topics in this module yet.</span>
+                      <button
+                        type="button"
+                        className="link-button"
+                        onClick={() => {
+                          setActiveModuleIdForTopic(m.id);
+                          setIsAddTopicModalOpen(true);
+                        }}
+                      >
+                        Add first topic
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon="📚"
+            title="Curriculum is empty"
+            description="Build structured learning by adding your first module or seed the standard Linux DevOps roadmap."
+            actionLabel="Seed Reference Roadmap"
+            onAction={handleSeedRoadmap}
+          />
+        )
+      )}
+
+      {/* 2. Board View (Kanban 4 Columns) */}
+      {viewMode === 'board' && (
+        enrichedTopics.length > 0 ? (
+          <div className="board-columns-grid">
+            {boardColumns.map((col) => {
+              const colTopics = enrichedTopics.filter((t) => {
+                if (col.status === 'not_started') return t.status === 'not_started';
+                if (col.status === 'learning') return t.status === 'learning';
+                if (col.status === 'practicing') return t.status === 'practicing' || t.status === 'review';
+                if (col.status === 'mastered') return t.status === 'mastered';
+                return false;
+              });
+
+              return (
+                <div key={col.status} className="board-column-panel">
+                  <div className="board-column-header">
+                    <div className="column-header-title">
+                      <span className={`column-status-dot dot-${col.status}`} />
+                      <strong>{col.title}</strong>
+                    </div>
+                    <span className="column-count-badge">{colTopics.length}</span>
+                  </div>
+
+                  <div className="board-column-cards">
+                    {colTopics.map((topic) => (
+                      <Card key={topic.id} className="board-topic-card" padded={false}>
+                        <CardHeader className="board-card-header">
+                          <span className="board-card-module-tag" title={topic.moduleTitle}>
+                            {topic.moduleTitle}
+                          </span>
+                          <Badge variant="mastery" mastery={topic.mastery} size="sm" />
+                        </CardHeader>
+
+                        <CardBody className="board-card-body">
+                          <Link
+                            to={`/paths/${path.id}/topics/${topic.id}`}
+                            className="board-card-title-link"
+                          >
+                            <h4>{topic.title}</h4>
+                          </Link>
+                          <p className="board-card-objective">{topic.objective}</p>
+
+                          <div className="board-card-meta">
+                            <span className="meta-duration">⏱️ ~{topic.estimatedMinutes}m</span>
+                          </div>
+
+                          <div className="board-card-actions mt-3">
+                            <select
+                              className="board-status-select"
+                              value={topic.status}
+                              onChange={(e) =>
+                                handleUpdateTopic(
+                                  topic,
+                                  e.target.value as TopicStatus,
+                                  topic.status === 'mastered' ? 4 : topic.mastery
+                                )
+                              }
+                              aria-label={`Move status for ${topic.title}`}
+                            >
+                              <option value="not_started">Move: Not Started</option>
+                              <option value="learning">Move: Learning</option>
+                              <option value="practicing">Move: Practicing</option>
+                              <option value="mastered">Move: Mastered</option>
+                            </select>
+
+                            <Link
+                              to={`/paths/${path.id}/topics/${topic.id}`}
+                              className="btn btn-primary btn-sm board-study-btn"
+                            >
+                              Study →
+                            </Link>
+                          </div>
+                        </CardBody>
+                      </Card>
+                    ))}
+
+                    {colTopics.length === 0 && (
+                      <div className="empty-column-dropzone">
+                        <small>No topics in {col.title}</small>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <EmptyState
+            icon="📋"
+            title="No topics in this curriculum yet"
+            description="Add modules and topics or seed the reference roadmap to view the study board."
+          />
+        )
+      )}
+
+      {/* 3. Timeline View */}
+      {viewMode === 'timeline' && (
+        enrichedTopics.length > 0 ? (
+          <div className="timeline-view-wrapper">
+            <div className="timeline-controls-bar mb-6">
+              <span className="timeline-total-count">
+                {timelineItems.length} Study Blocks Scheduled for this Curriculum
+              </span>
+            </div>
+
+            <div className="timeline-track-container">
+              {timelineItems.map((item, idx) => {
+                const isCompleted = item.status === 'mastered';
+                const isActive = item.status === 'learning' || item.status === 'practicing';
+
+                return (
+                  <div
+                    key={item.id}
+                    className={`timeline-event-row ${isCompleted ? 'is-completed' : ''} ${isActive ? 'is-active' : ''}`}
+                  >
+                    <div className="timeline-time-col">
+                      <span className="time-range-text">{item.timeSlot}</span>
+                      <small className="time-duration-text">~{item.estimatedMinutes}m</small>
+                    </div>
+
+                    <div className="timeline-spine-col">
+                      <div className="timeline-spine-dot" />
+                      {idx < timelineItems.length - 1 && <div className="timeline-spine-line" />}
+                    </div>
+
+                    <div className="timeline-content-col">
+                      <Card interactive padded={false} className="timeline-event-card">
+                        <CardBody>
+                          <div className="timeline-card-header">
+                            <div className="timeline-header-badges">
+                              <span className="timeline-module-badge">{item.moduleTitle}</span>
+                              <StatusPill status={item.status} size="sm" />
+                              <Badge variant="mastery" mastery={item.mastery} size="sm" />
+                            </div>
+                          </div>
+
+                          <Link
+                            to={`/paths/${path.id}/topics/${item.id}`}
+                            className="timeline-topic-title-link"
+                          >
+                            <h3>{item.title}</h3>
+                          </Link>
+                          <p className="timeline-topic-desc">{item.objective}</p>
+
+                          <div className="timeline-card-footer">
+                            <Link
+                              to={`/paths/${path.id}/topics/${item.id}`}
+                              className="btn btn-secondary btn-sm"
+                            >
+                              Study Workspace →
+                            </Link>
+                          </div>
+                        </CardBody>
+                      </Card>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <EmptyState
+            icon="⏱️"
+            title="No timeline sessions scheduled"
+            description="Add topics with estimated durations to generate your study timeline."
+          />
+        )
       )}
 
       {/* Edit Path Modal */}

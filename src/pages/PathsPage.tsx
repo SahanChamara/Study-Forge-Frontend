@@ -15,7 +15,7 @@ import { Select } from '../components/ui/Select';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Skeleton } from '../components/ui/Skeleton';
 import { Alert } from '../components/ui/Alert';
-import type { LearningPath } from '../types';
+import type { LearningPath, Topic } from '../types';
 
 export const PathsPage: React.FC = () => {
   const [paths, setPaths] = useState<LearningPath[]>([]);
@@ -51,6 +51,7 @@ export const PathsPage: React.FC = () => {
     loadPaths();
   }, []);
 
+  // Filtered paths
   const filteredPaths = useMemo(() => {
     return paths.filter((p) => {
       const matchesSearch =
@@ -66,6 +67,26 @@ export const PathsPage: React.FC = () => {
       return matchesSearch && matchesLevel;
     });
   }, [paths, searchQuery, levelFilter]);
+
+  // Overall Curricula Statistics
+  const stats = useMemo(() => {
+    const totalPaths = paths.length;
+    const allTopics = paths.flatMap((p) => p.topics || []);
+    const totalTopics = allTopics.length;
+    const masteredTopics = allTopics.filter((t) => t.status === 'mastered').length;
+    const totalMinutes = allTopics.reduce((sum, t) => sum + (t.estimatedMinutes || 45), 0);
+    const totalHours = (totalMinutes / 60).toFixed(1);
+
+    return { totalPaths, totalTopics, masteredTopics, totalHours };
+  }, [paths]);
+
+  // Helper to determine the Next Action topic for a given path
+  const getNextActionTopic = (p: LearningPath): Topic | null => {
+    if (!p.topics || p.topics.length === 0) return null;
+    const inProgress = p.topics.find((t) => ['learning', 'practicing', 'review'].includes(t.status));
+    if (inProgress) return inProgress;
+    return p.topics.find((t) => t.status === 'not_started') || p.topics[0] || null;
+  };
 
   const handleCreatePath = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,9 +121,9 @@ export const PathsPage: React.FC = () => {
   return (
     <div className="paths-page-container animate-fade-in">
       <PageHeader
-        eyebrow="CURRICULUM DIRECTORY"
+        eyebrow="CURRICULUM ROADMAPS"
         title="Learning Paths"
-        description="Structured roadmaps with explicit module hierarchies and verified practice."
+        description="Structured engineering curriculums with explicit module hierarchies, deliberate practice, and verifiable proof."
         actions={
           <Button
             variant="primary"
@@ -116,8 +137,28 @@ export const PathsPage: React.FC = () => {
 
       {error && <Alert variant="error" message={error} onRetry={loadPaths} />}
 
+      {/* Curriculum Directory Summary Strip */}
+      <div className="paths-stats-strip mb-6">
+        <div className="paths-stat-item">
+          <span className="paths-stat-label">Active Roadmaps</span>
+          <strong className="paths-stat-val">{stats.totalPaths} Curricula</strong>
+        </div>
+        <div className="paths-stat-item">
+          <span className="paths-stat-label">Total Topics</span>
+          <strong className="paths-stat-val">{stats.totalTopics} Topics</strong>
+        </div>
+        <div className="paths-stat-item">
+          <span className="paths-stat-label">Verified Mastered</span>
+          <strong className="paths-stat-val text-success">{stats.masteredTopics} Mastered</strong>
+        </div>
+        <div className="paths-stat-item">
+          <span className="paths-stat-label">Estimated Depth</span>
+          <strong className="paths-stat-val text-primary">{stats.totalHours} Hours</strong>
+        </div>
+      </div>
+
       {/* Filter & Search Bar */}
-      <div className="catalog-filter-bar">
+      <div className="catalog-filter-bar mb-6">
         <div className="filter-search-box">
           <SearchInput
             placeholder="Search paths by title, goal, or technology..."
@@ -134,6 +175,7 @@ export const PathsPage: React.FC = () => {
               { id: 'foundation', label: 'Foundation' },
               { id: 'practical', label: 'Practical' },
               { id: 'job-ready', label: 'Job-Ready' },
+              { id: 'advanced', label: 'Advanced' },
             ]}
             value={levelFilter}
             onChange={setLevelFilter}
@@ -161,37 +203,79 @@ export const PathsPage: React.FC = () => {
           {filteredPaths.map((p) => {
             const topicCount = p.topics?.length || 0;
             const moduleCount = p.modules?.length || 0;
+            const masteredCount = p.topics?.filter((t) => t.status === 'mastered').length || 0;
             const progress = p.progressPercent || 0;
+            const nextActionTopic = getNextActionTopic(p);
 
             return (
-              <Link to={`/paths/${p.id}`} key={p.id} className="path-card-anchor">
+              <div key={p.id} className="path-card-wrapper">
                 <Card interactive padded={false} className="path-card-item">
                   <CardHeader>
-                    <Badge variant="neutral">{p.targetLevel}</Badge>
-                    <span className="path-hierarchy-meta">
-                      {moduleCount} modules · {topicCount} topics
-                    </span>
+                    <div className="path-card-header-top">
+                      <Badge variant="neutral">{p.targetLevel}</Badge>
+                      <span className="path-hierarchy-meta">
+                        {moduleCount} {moduleCount === 1 ? 'module' : 'modules'} · {topicCount} {topicCount === 1 ? 'topic' : 'topics'}
+                      </span>
+                    </div>
                   </CardHeader>
+
                   <CardBody>
-                    <h2 className="path-title-heading">{p.title}</h2>
+                    <Link to={`/paths/${p.id}`} className="path-card-title-anchor">
+                      <h2 className="path-title-heading">{p.title}</h2>
+                    </Link>
                     <p className="path-goal-summary">{p.goal || p.description}</p>
-                    <div className="path-progress-box">
+
+                    {/* Next Action Callout Strip */}
+                    {nextActionTopic ? (
+                      <div className="path-next-action-strip">
+                        <div className="next-action-icon">🎯</div>
+                        <div className="next-action-details">
+                          <span className="next-action-tag">NEXT ACTION</span>
+                          <Link
+                            to={`/paths/${p.id}/topics/${nextActionTopic.id}`}
+                            className="next-action-title"
+                          >
+                            {nextActionTopic.title}
+                          </Link>
+                        </div>
+                        <span className="next-action-time">⏱️ {nextActionTopic.estimatedMinutes}m</span>
+                      </div>
+                    ) : (
+                      <div className="path-next-action-strip complete">
+                        <div className="next-action-icon">🏆</div>
+                        <div className="next-action-details">
+                          <span className="next-action-tag">STATUS</span>
+                          <span className="next-action-title">All Topics Completed</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Progress Bar with Fraction */}
+                    <div className="path-progress-box mt-4">
+                      <div className="path-progress-meta-row">
+                        <span className="progress-meta-label">Curriculum Mastery</span>
+                        <span className="progress-meta-fraction">
+                          {masteredCount} of {topicCount} Mastered ({progress}%)
+                        </span>
+                      </div>
                       <ProgressBar
                         value={progress}
-                        label="Path Mastery"
                         variant={progress >= 80 ? 'success' : 'primary'}
                         size="sm"
                       />
                     </div>
                   </CardBody>
+
                   <CardFooter className="path-card-footer-flex">
                     <span className="path-updated-date">
                       Updated {new Date(p.updatedAt).toLocaleDateString()}
                     </span>
-                    <span className="path-open-action">Open Path →</span>
+                    <Link to={`/paths/${p.id}`} className="path-open-action-btn">
+                      View Curriculum →
+                    </Link>
                   </CardFooter>
                 </Card>
-              </Link>
+              </div>
             );
           })}
         </div>

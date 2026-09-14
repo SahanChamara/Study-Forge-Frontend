@@ -69,11 +69,37 @@ export const PathDetailPage: React.FC = () => {
 
   const moduleGroups = useMemo(() => {
     if (!path?.modules) return [];
-    return path.modules.map((m) => ({
-      ...m,
-      topics: path.topics?.filter((t) => t.moduleId === m.id) || [],
-    }));
+    return path.modules.map((m) => {
+      const topics = path.topics?.filter((t) => t.moduleId === m.id) || [];
+      const masteredInModule = topics.filter((t) => t.status === 'mastered').length;
+      return {
+        ...m,
+        topics,
+        masteredCount: masteredInModule,
+      };
+    });
   }, [path]);
+
+  // Compute Next Action topic within this path
+  const nextActionTopic = useMemo(() => {
+    if (!path?.topics || path.topics.length === 0) return null;
+    const inProgress = path.topics.find((t) => ['learning', 'practicing', 'review'].includes(t.status));
+    if (inProgress) return inProgress;
+    return path.topics.find((t) => t.status === 'not_started') || path.topics[0] || null;
+  }, [path?.topics]);
+
+  // Next action module name
+  const nextActionModule = useMemo(() => {
+    if (!nextActionTopic || !path?.modules) return null;
+    return path.modules.find((m) => m.id === nextActionTopic.moduleId);
+  }, [nextActionTopic, path?.modules]);
+
+  // Total curriculum duration
+  const totalCurriculumHours = useMemo(() => {
+    if (!path?.topics) return '0';
+    const totalMinutes = path.topics.reduce((acc, t) => acc + (t.estimatedMinutes || 45), 0);
+    return (totalMinutes / 60).toFixed(1);
+  }, [path?.topics]);
 
   const handleSeedRoadmap = async () => {
     try {
@@ -221,6 +247,7 @@ export const PathDetailPage: React.FC = () => {
   const masteredCount = path.topics?.filter((t) => t.status === 'mastered').length || 0;
   const inProgressCount =
     path.topics?.filter((t) => ['learning', 'practicing', 'review'].includes(t.status)).length || 0;
+  const notStartedCount = topicCount - masteredCount - inProgressCount;
 
   return (
     <div className="path-detail-page-container animate-fade-in">
@@ -254,13 +281,50 @@ export const PathDetailPage: React.FC = () => {
         }
       />
 
-      {/* Path Summary Hero Card */}
+      {error && <Alert variant="error" message={error} onRetry={loadPath} />}
+
+      {/* Next Action Immediate Workspace Hero */}
+      {nextActionTopic && (
+        <Card className="path-next-action-hero mb-6" padded={false}>
+          <CardHeader className="next-action-hero-header">
+            <div className="next-action-badge-row">
+              <span className="next-action-indicator-pill">🎯 NEXT ACTION</span>
+              {nextActionModule && (
+                <span className="next-action-module-tag">
+                  {nextActionModule.title}
+                </span>
+              )}
+            </div>
+            <div className="next-action-status-group">
+              <StatusPill status={nextActionTopic.status} size="sm" />
+              <Badge variant="mastery" mastery={nextActionTopic.mastery} size="sm" />
+            </div>
+          </CardHeader>
+          <CardBody className="next-action-hero-body">
+            <div className="next-action-hero-text">
+              <h2 className="next-action-topic-heading">{nextActionTopic.title}</h2>
+              <p className="next-action-objective-text">{nextActionTopic.objective}</p>
+            </div>
+            <div className="next-action-hero-cta">
+              <span className="next-action-duration">⏱️ ~{nextActionTopic.estimatedMinutes} min</span>
+              <Link
+                to={`/paths/${path.id}/topics/${nextActionTopic.id}`}
+                className="btn btn-primary btn-md"
+              >
+                Resume Study Workspace →
+              </Link>
+            </div>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* Path Summary & Mastery Hero Card */}
       <Card className="path-summary-hero-card mb-6" padded={false}>
         <CardHeader>
           <div className="path-hero-eyebrow">
             <Badge variant="neutral">{path.targetLevel}</Badge>
             <span className="path-counts-tag">
-              {path.modules?.length || 0} Modules · {topicCount} Topics
+              {path.modules?.length || 0} Modules · {topicCount} Topics · ~{totalCurriculumHours} Hours
             </span>
           </div>
         </CardHeader>
@@ -269,19 +333,22 @@ export const PathDetailPage: React.FC = () => {
 
           <div className="path-hero-progress-section">
             <div className="path-progress-stats">
-              <span>
-                <strong>{masteredCount}</strong> Mastered
-              </span>
-              <span>
-                <strong>{inProgressCount}</strong> In Progress
-              </span>
-              <span>
-                <strong>{topicCount - masteredCount - inProgressCount}</strong> Not Started
-              </span>
+              <div className="stat-pill-group">
+                <span className="stat-num-badge success">{masteredCount}</span>
+                <span className="stat-num-label">Mastered (M4/M5)</span>
+              </div>
+              <div className="stat-pill-group">
+                <span className="stat-num-badge primary">{inProgressCount}</span>
+                <span className="stat-num-label">In Progress</span>
+              </div>
+              <div className="stat-pill-group">
+                <span className="stat-num-badge neutral">{notStartedCount}</span>
+                <span className="stat-num-label">Not Started</span>
+              </div>
             </div>
             <ProgressBar
               value={path.progressPercent || 0}
-              label="Overall Completion"
+              label={`Curriculum Progress (${path.progressPercent || 0}%)`}
               variant={path.progressPercent && path.progressPercent >= 80 ? 'success' : 'primary'}
               size="lg"
             />
@@ -289,12 +356,10 @@ export const PathDetailPage: React.FC = () => {
         </CardBody>
       </Card>
 
-      {error && <Alert variant="error" message={error} onRetry={loadPath} />}
-
       {/* Module Hierarchy Section Header */}
       <div className="module-section-header">
         <div>
-          <span className="eyebrow">CURRICULUM MODULES</span>
+          <span className="eyebrow">CURRICULUM HIERARCHY</span>
           <h2>Ordered Modules &amp; Hands-on Topics</h2>
         </div>
         <div className="module-actions">
@@ -328,7 +393,9 @@ export const PathDetailPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="module-heading-right">
-                  <span className="module-topic-counter">{m.topics.length} topics</span>
+                  <span className="module-topic-counter">
+                    {m.masteredCount}/{m.topics.length} Mastered
+                  </span>
                   <Button
                     variant="secondary"
                     size="sm"
@@ -411,7 +478,7 @@ export const PathDetailPage: React.FC = () => {
 
                         <Link
                           to={`/paths/${path.id}/topics/${t.id}`}
-                          className="btn btn-secondary btn-sm"
+                          className="btn btn-secondary btn-sm topic-workspace-btn"
                         >
                           Study Workspace →
                         </Link>

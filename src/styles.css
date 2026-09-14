@@ -1819,19 +1819,27 @@ textarea:focus {
 
 .stats-metric-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: var(--space-4);
   margin-bottom: var(--space-6);
 }
 
+.stat-card-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
 .stat-card {
   box-shadow: var(--shadow-sm);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+  height: 100%;
 }
 
 .stat-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
+  border-color: var(--color-primary-soft);
 }
 
 .stat-card-top {
@@ -1842,47 +1850,351 @@ textarea:focus {
 }
 
 .stat-icon-badge {
-  font-size: 1.25rem;
+  font-size: 1.35rem;
 }
 
 .stat-label {
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
 }
 
 .stat-value {
   display: block;
-  font-size: 2rem;
+  font-size: 2.25rem;
   font-weight: 800;
   color: var(--color-text-primary);
   line-height: 1.1;
-  margin-bottom: 0.2rem;
+  margin-bottom: 0.35rem;
 }
 
 .stat-value-highlight {
   color: var(--color-primary);
 }
 
+.stat-value-warning {
+  color: var(--color-warning);
+}
+
+.stat-card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-1);
+}
+
 .stat-hint {
   font-size: 0.75rem;
   color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.stat-trend-tag {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-full);
+}
+
+.stat-trend-tag.positive {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.stat-trend-tag.warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.stat-trend-tag.neutral {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
 }
 
 .dashboard-main-grid {
   display: grid;
-  grid-template-columns: 1.4fr 1fr;
+  grid-template-columns: 1.45fr 1fr;
   gap: var(--space-6);
   margin-bottom: var(--space-6);
 }
 
-.dashboard-left-col,
-.dashboard-right-col {
+.dashboard-lower-left-col,
+.dashboard-lower-right-col {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
+}
+
+/* ==================== */
+/* Learning Activity Chart (Reports/Sales Equivalent) */
+/* ==================== */
+.learning-activity-card {
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-header-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.activity-metric-selector {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.metric-select-btn {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.metric-select-btn:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+}
+
+.metric-select-btn.is-active {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  font-weight: 700;
+}
+
+.weekly-bar-chart-container {
+  padding: var(--space-4) var(--space-2) var(--space-2);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.chart-bars-track {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 180px;
+  padding: 0 var(--space-3);
+  gap: var(--space-2);
+}
+
+.chart-day-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.column-bar-wrapper {
+  width: 100%;
+  max-width: 38px;
+  height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  position: relative;
+  border-radius: var(--radius-md);
+  background: rgba(226, 232, 240, 0.4);
+}
+
+.column-bar-fill {
+  width: 100%;
+  background: linear-gradient(180deg, var(--color-primary) 0%, #4b48df 100%);
+  border-radius: var(--radius-sm);
+  transition: height var(--transition-normal);
+  min-height: 8px;
+}
+
+.chart-day-column.is-today .column-bar-fill {
+  background: linear-gradient(180deg, #706dff 0%, var(--color-primary) 100%);
+  box-shadow: 0 0 10px rgba(95, 92, 255, 0.45);
+}
+
+.bar-tooltip {
+  position: absolute;
+  top: -24px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
+.chart-day-column:hover .bar-tooltip {
+  opacity: 1;
+  color: var(--color-primary);
+  font-weight: 800;
+}
+
+.column-day-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.chart-day-column.is-today .column-day-label {
+  color: var(--color-primary);
+  font-weight: 800;
+}
+
+.activity-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.summary-stat-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-sublabel {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.stat-subval {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+
+/* ==================== */
+/* Recent Learning Activity Feed (Recent Orders Equivalent) */
+/* ==================== */
+.recent-activity-card {
+  box-shadow: var(--shadow-sm);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.recent-activity-view-all {
+  font-size: 0.8125rem;
+  color: var(--color-primary);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.recent-activity-view-all:hover {
+  text-decoration: underline;
+}
+
+.recent-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.recent-activity-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-fast);
+}
+
+.recent-activity-item:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-hover);
+  transform: translateX(2px);
+}
+
+.activity-item-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  overflow: hidden;
+}
+
+.activity-type-pill {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.activity-type-pill.type-lab { background: #dbeafe; color: #1e40af; }
+.activity-type-pill.type-study { background: #fef3c7; color: #92400e; }
+.activity-type-pill.type-note { background: #f3e8ff; color: #6b21a8; }
+.activity-type-pill.type-review { background: #dcfce7; color: #166534; }
+
+.activity-item-details {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.activity-item-title-link {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.activity-item-title-link:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.activity-item-path {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.activity-item-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+  margin-left: var(--space-3);
+}
+
+.activity-outcome-badge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-sm);
+}
+
+.activity-item-time {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
 }
 
 .active-learning-card {

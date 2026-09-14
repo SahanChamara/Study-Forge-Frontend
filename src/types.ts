@@ -106,6 +106,38 @@ export interface ReviewItem {
   recallQuestions: RecallQuestion[];
 }
 
+export interface RecentActivityItem {
+  id: string;
+  type: 'study' | 'lab' | 'review' | 'note';
+  title: string;
+  pathTitle: string;
+  pathId: string;
+  topicId: string;
+  outcome: string;
+  timestamp: string;
+}
+
+export interface WeeklyActivityDay {
+  day: string;
+  minutes: number;
+  topicsCompleted: number;
+  labsCompleted: number;
+}
+
+export interface DashboardData {
+  paths: number;
+  topics: number;
+  mastered: number;
+  inProgress: number;
+  notes: number;
+  completedPractice: number;
+  pendingReviews: number;
+  activeTopic?: (Topic & { pathTitle?: string }) | null;
+  recentActivity?: RecentActivityItem[];
+  weeklyActivity?: WeeklyActivityDay[];
+  currentStreakDays?: number;
+}
+
 export interface DashboardStats {
   totalPaths: number;
   totalTopics: number;
@@ -123,3 +155,4 @@ export interface GlobalSearchResult {
   notes: Note[];
   practiceTasks: PracticeTask[];
 }
+

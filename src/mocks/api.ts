@@ -371,6 +371,59 @@ export async function mockApi<T = unknown>(path: string, options: RequestInit = 
     const activeTopic = inProgressTopics[0] || (allTopics.length > 0 ? allTopics[0] : null);
     const activePath = activeTopic ? paths.find((p) => p.id === activeTopic.pathId) : null;
 
+    const recentActivity = [
+      {
+        id: 'act-1',
+        type: 'lab' as const,
+        title: 'Trace syscalls of process startup with strace',
+        pathTitle: activePath?.title || 'Linux Systems & Production Engineering',
+        pathId: activeTopic?.pathId || 'linux-devops',
+        topicId: activeTopic?.id || 't-linux-1',
+        outcome: 'Verified Proof Attached',
+        timestamp: new Date(Date.now() - 2 * 3600000).toISOString(),
+      },
+      {
+        id: 'act-2',
+        type: 'study' as const,
+        title: 'Linux Architecture & Subsystems',
+        pathTitle: activePath?.title || 'Linux Systems & Production Engineering',
+        pathId: activeTopic?.pathId || 'linux-devops',
+        topicId: 't-linux-1',
+        outcome: 'Mastery M4 (Unaided)',
+        timestamp: new Date(Date.now() - 5 * 3600000).toISOString(),
+      },
+      {
+        id: 'act-3',
+        type: 'note' as const,
+        title: 'Filesystem Hierarchy & FHS Principles',
+        pathTitle: activePath?.title || 'Linux Systems & Production Engineering',
+        pathId: activeTopic?.pathId || 'linux-devops',
+        topicId: 't-linux-2',
+        outcome: 'Structured Note Saved',
+        timestamp: new Date(Date.now() - 24 * 3600000).toISOString(),
+      },
+      {
+        id: 'act-4',
+        type: 'review' as const,
+        title: 'System Calls & POSIX Traps',
+        pathTitle: activePath?.title || 'Linux Systems & Production Engineering',
+        pathId: activeTopic?.pathId || 'linux-devops',
+        topicId: 't-linux-1',
+        outcome: 'Recall Good (+7d Interval)',
+        timestamp: new Date(Date.now() - 48 * 3600000).toISOString(),
+      },
+    ];
+
+    const weeklyActivity = [
+      { day: 'Mon', minutes: 45, topicsCompleted: 1, labsCompleted: 2 },
+      { day: 'Tue', minutes: 60, topicsCompleted: 2, labsCompleted: 1 },
+      { day: 'Wed', minutes: 30, topicsCompleted: 0, labsCompleted: 2 },
+      { day: 'Thu', minutes: 75, topicsCompleted: 2, labsCompleted: 3 },
+      { day: 'Fri', minutes: 50, topicsCompleted: 1, labsCompleted: 1 },
+      { day: 'Sat', minutes: 90, topicsCompleted: 3, labsCompleted: 4 },
+      { day: 'Sun', minutes: 40, topicsCompleted: 1, labsCompleted: 1 },
+    ];
+
     return {
       paths: paths.length,
       topics: allTopics.length,
@@ -383,6 +436,9 @@ export async function mockApi<T = unknown>(path: string, options: RequestInit = 
         ...activeTopic,
         pathTitle: activePath?.title || 'Learning Path',
       } : null,
+      recentActivity,
+      weeklyActivity,
+      currentStreakDays: 7,
     } as T;
   }
 

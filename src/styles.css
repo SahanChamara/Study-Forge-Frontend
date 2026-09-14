@@ -3569,6 +3569,221 @@ textarea:focus {
 }
 
 /* ==================== */
+/* Workspace Overview & Review Specifics (Phase UI-7) */
+/* ==================== */
+.why-it-matters-card {
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-info);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.why-matters-flex {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.why-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.why-content h3 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.why-content p {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.overview-quick-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-4);
+}
+
+.overview-shortcut-card {
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.overview-shortcut-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary-soft);
+}
+
+.overview-shortcut-card .card-body {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.shortcut-icon {
+  font-size: 1.4rem;
+}
+
+.overview-shortcut-card strong {
+  display: block;
+  font-size: 0.9375rem;
+  color: var(--color-text-primary);
+}
+
+.overview-shortcut-card small {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.shortcut-arrow {
+  margin-left: auto;
+  font-size: 1.1rem;
+  color: var(--color-primary);
+  font-weight: 800;
+}
+
+/* Topic Review Flashcard Styles */
+.topic-review-card {
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+}
+
+.flashcard-active-session {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.flashcard-progress-counter {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.flashcard-question-box {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+.question-tag {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-2);
+  display: block;
+}
+
+.question-prompt-text {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  line-height: 1.4;
+}
+
+.flashcard-answer-revealed {
+  background: var(--color-surface);
+  border: 1px solid rgba(95, 92, 255, 0.2);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.answer-tag {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: var(--color-success);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-2);
+  display: block;
+}
+
+.answer-text {
+  font-size: 1rem;
+  color: var(--color-text-primary);
+  line-height: 1.6;
+}
+
+.retention-rating-section {
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+
+.rating-prompt-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.reveal-answer-dock {
+  text-align: center;
+  padding: var(--space-6);
+  background: var(--color-bg);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.dock-hint {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-4);
+}
+
+.review-submitted-state {
+  text-align: center;
+  padding: var(--space-8) var(--space-4);
+}
+
+.celebration-icon {
+  font-size: 3rem;
+  margin-bottom: var(--space-3);
+  display: block;
+}
+
+.review-submitted-state h3 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin-bottom: 0.35rem;
+}
+
+.review-submitted-state p {
+  font-size: 0.9375rem;
+  color: var(--color-text-secondary);
+}
+
+.review-submitted-actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+.empty-review-state {
+  text-align: center;
+  padding: var(--space-8) var(--space-4);
+  color: var(--color-text-muted);
+}
+
+.empty-hint {
+  font-size: 0.8125rem;
+  margin: var(--space-2) 0 var(--space-4);
+}
+
+/* ==================== */
 /* Smart Notes Catalog */
 /* ==================== */
 .notes-catalog-grid {

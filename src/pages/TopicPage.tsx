@@ -9,21 +9,22 @@ import { Input } from '../components/ui/Input';
 import { Textarea } from '../components/ui/Textarea';
 import { Select } from '../components/ui/Select';
 import { StatusPill } from '../components/ui/StatusPill';
+import { Badge } from '../components/ui/Badge';
 import { Alert } from '../components/ui/Alert';
 import { Skeleton } from '../components/ui/Skeleton';
 import { MarkdownPreview } from '../components/ui/MarkdownPreview';
-import type { LearningPath, MasteryLevel, Note, PracticeTask, PracticeTaskType, Topic, TopicStatus } from '../types';
+import type { LearningPath, MasteryLevel, Note, PracticeTask, PracticeTaskType, Topic, TopicStatus, RecallQuestion } from '../types';
 
 const defaultNoteTemplate = `# Topic Notes
 
 ## Why this matters
-<!-- 2-3 sentences on why an engineer needs this skill -->
+<!-- 2-3 sentences on why an engineer needs this skill in production -->
 
 ## Mental model
 <!-- Core abstraction, architecture diagram, or high-level flow -->
 
 ## Key concepts
-<!-- Essential terms and components -->
+<!-- Essential terms, components, and subsystems -->
 - 
 
 ## Commands / syntax
@@ -32,7 +33,7 @@ const defaultNoteTemplate = `# Topic Notes
 \`\`\`
 
 ## Worked example
-<!-- Real-world step-by-step scenario -->
+<!-- Real-world step-by-step production scenario -->
 
 ## Pitfalls / debugging
 <!-- Common error messages and their root causes -->
@@ -81,6 +82,14 @@ export const TopicPage: React.FC = () => {
   const [savingEvidenceId, setSavingEvidenceId] = useState<string | null>(null);
   const [error, setError] = useState('');
 
+  // Review Tab State
+  const [reviewQuestions, setReviewQuestions] = useState<RecallQuestion[]>([]);
+  const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
+  const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [nextReviewDays, setNextReviewDays] = useState<number | null>(null);
+  const [submittingReview, setSubmittingReview] = useState(false);
+
   // Add Resource Modal State
   const [isAddResourceModalOpen, setIsAddResourceModalOpen] = useState(false);
   const [newResourceUrl, setNewResourceUrl] = useState('');
@@ -110,16 +119,50 @@ export const TopicPage: React.FC = () => {
       setNotes(notesData);
       setTasks(tasksData);
 
+      // Extract recall questions from note or construct default
+      const extractedQuestions: RecallQuestion[] = [];
       if (notesData.length > 0 && notesData[0].contentMarkdown) {
         setNoteContent(notesData[0].contentMarkdown);
         initialLoadedContent.current = notesData[0].contentMarkdown;
         if (notesData[0].updatedAt) {
           setLastSavedTime(new Date(notesData[0].updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
         }
+
+        // Parse questions from markdown
+        const lines = notesData[0].contentMarkdown.split('\n');
+        let currentQ = '';
+        lines.forEach((line) => {
+          if (line.startsWith('- Q: ')) {
+            currentQ = line.replace('- Q: ', '').trim();
+          } else if (line.startsWith('  A: ') && currentQ) {
+            const ans = line.replace('  A: ', '').trim();
+            extractedQuestions.push({
+              id: `q-${extractedQuestions.length + 1}`,
+              question: currentQ,
+              suggestedAnswer: ans,
+            });
+            currentQ = '';
+          }
+        });
       } else {
         setNoteContent(defaultNoteTemplate);
         initialLoadedContent.current = defaultNoteTemplate;
       }
+
+      // Fallback question if none found in note
+      const currentTopicObj = pathData.topics?.find((t) => t.id === topicId);
+      if (extractedQuestions.length === 0 && currentTopicObj) {
+        extractedQuestions.push({
+          id: 'q-default-1',
+          question: `How do you fulfill the target outcome: "${currentTopicObj.objective}"?`,
+          suggestedAnswer: `Demonstrate unaided execution of the core syntax, mental model, and verification commands for ${currentTopicObj.title}.`,
+        });
+      }
+
+      setReviewQuestions(extractedQuestions);
+      setActiveQuestionIndex(0);
+      setIsAnswerRevealed(false);
+      setReviewSubmitted(false);
       setHasUnsavedChanges(false);
       setLoading(false);
     } catch (err) {
@@ -311,6 +354,34 @@ export const TopicPage: React.FC = () => {
       setError(err instanceof Error ? err.message : 'Failed to add resource.');
     } finally {
       setIsSubmittingResource(false);
+    }
+  };
+
+  // Submit Spaced Recall Rating
+  const handleRateRecall = async (rating: 'again' | 'hard' | 'good' | 'easy') => {
+    setSubmittingReview(true);
+    try {
+      const res = await api<{ success: boolean; updatedMastery: MasteryLevel; nextReviewDays: number }>(
+        '/review/submit',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            topicId,
+            rating,
+          }),
+        }
+      );
+
+      if (res.updatedMastery !== undefined) {
+        handleUpdateTopicMetadata({ mastery: res.updatedMastery });
+      }
+
+      setNextReviewDays(res.nextReviewDays);
+      setReviewSubmitted(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to submit review rating.');
+    } finally {
+      setSubmittingReview(false);
     }
   };
 
@@ -531,27 +602,38 @@ export const TopicPage: React.FC = () => {
           </CardBody>
         </Card>
 
-        {/* Tab Navigation */}
+        {/* 5-Tab Focused Workspace Navigation */}
         <div className="workspace-tabs-container mb-6">
           <Tabs
             tabs={[
               {
                 id: 'overview',
-                label: 'Overview & Resources',
-                icon: '📚',
-                badge: currentTopic.resourceUrls?.length || 0,
+                label: 'Overview',
+                icon: '🎯',
               },
               {
                 id: 'notes',
-                label: 'Smart Notes',
+                label: 'Notes',
                 icon: '📝',
                 badge: notes.length > 0 ? 'Saved' : 'Draft',
               },
               {
                 id: 'practice',
-                label: 'Practice Labs',
+                label: 'Practice',
                 icon: '⚡',
                 badge: tasks.length,
+              },
+              {
+                id: 'resources',
+                label: 'Resources',
+                icon: '📚',
+                badge: currentTopic.resourceUrls?.length || 0,
+              },
+              {
+                id: 'review',
+                label: 'Review',
+                icon: '🔄',
+                badge: currentTopic.status === 'review' ? 'Due' : `M${currentTopic.mastery}`,
               },
             ]}
             activeTab={activeTab}
@@ -559,10 +641,63 @@ export const TopicPage: React.FC = () => {
           />
         </div>
 
-        {/* Tab 1: Overview & Resources */}
+        {/* ========================================= */}
+        {/* Tab 1: Overview */}
+        {/* ========================================= */}
         {activeTab === 'overview' && (
           <div className="tab-pane-content">
-            {/* Session Shape Pacing Guide */}
+            {/* Why This Matters Callout */}
+            <Card className="why-it-matters-card mb-6">
+              <CardBody>
+                <div className="why-matters-flex">
+                  <span className="why-icon">💡</span>
+                  <div className="why-content">
+                    <h3>Why this skill matters in production</h3>
+                    <p>
+                      Mastering <strong>{currentTopic.title}</strong> ensures you can deploy, operate, and troubleshoot production environments unaided without relying on guess-and-check or copying unverified snippets.
+                    </p>
+                  </div>
+                </div>
+              </CardBody>
+            </Card>
+
+            {/* Quick Action Navigation Dock to Workspace Sections */}
+            <div className="overview-quick-shortcuts mb-6">
+              <Card interactive className="overview-shortcut-card" onClick={() => setActiveTab('notes')}>
+                <CardBody>
+                  <span className="shortcut-icon">📝</span>
+                  <div>
+                    <strong>Capture Smart Notes</strong>
+                    <small>Synthesize mental models from memory</small>
+                  </div>
+                  <span className="shortcut-arrow">→</span>
+                </CardBody>
+              </Card>
+
+              <Card interactive className="overview-shortcut-card" onClick={() => setActiveTab('practice')}>
+                <CardBody>
+                  <span className="shortcut-icon">⚡</span>
+                  <div>
+                    <strong>Hands-on Practice Labs</strong>
+                    <small>{tasks.length} terminal tasks with verified proof</small>
+                  </div>
+                  <span className="shortcut-arrow">→</span>
+                </CardBody>
+              </Card>
+
+              <Card interactive className="overview-shortcut-card" onClick={() => setActiveTab('review')}>
+                <CardBody>
+                  <span className="shortcut-icon">🔄</span>
+                  <div>
+                    <strong>Spaced Active Recall</strong>
+                    <small>Reinforce retention & advance M0–M5 scale</small>
+                  </div>
+                  <span className="shortcut-arrow">→</span>
+                </CardBody>
+              </Card>
+            </div>
+
+            {/* 60-Minute Deliberate Practice Session Pacing Guide */}
             <Card className="session-shape-card mb-6">
               <CardHeader>
                 <div className="card-header-title">
@@ -600,61 +735,12 @@ export const TopicPage: React.FC = () => {
                 </div>
               </CardBody>
             </Card>
-
-            {/* Resources Reference Hub */}
-            <Card className="resources-hub-card">
-              <CardHeader>
-                <div className="card-header-title">
-                  <span className="eyebrow">REFERENCE DOCUMENTATION</span>
-                  <h3>Official Docs &amp; Command References</h3>
-                </div>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setIsAddResourceModalOpen(true)}
-                  leftIcon="＋"
-                >
-                  Add Resource
-                </Button>
-              </CardHeader>
-              <CardBody>
-                {currentTopic.resourceUrls && currentTopic.resourceUrls.length > 0 ? (
-                  <div className="resources-link-list">
-                    {currentTopic.resourceUrls.map((url, idx) => (
-                      <a
-                        key={idx}
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="resource-item-anchor"
-                      >
-                        <span className="resource-link-icon">🔗</span>
-                        <div className="resource-link-details">
-                          <strong className="resource-url-text">{url}</strong>
-                          <small>External documentation reference</small>
-                        </div>
-                        <span className="external-arrow-icon">↗</span>
-                      </a>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="empty-resources-box">
-                    <p>No external resource links added for this topic yet.</p>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setIsAddResourceModalOpen(true)}
-                    >
-                      ＋ Add First Reference Link
-                    </Button>
-                  </div>
-                )}
-              </CardBody>
-            </Card>
           </div>
         )}
 
+        {/* ========================================= */}
         {/* Tab 2: Smart Notes */}
+        {/* ========================================= */}
         {activeTab === 'notes' && (
           <div className="tab-pane-content">
             <Card className="smart-notes-card">
@@ -722,11 +808,33 @@ export const TopicPage: React.FC = () => {
                         className="template-btn"
                         onClick={() =>
                           handleNoteContentChange(
-                            `${noteContent}\n\n## Mental model\n- Core concept:\n`
+                            `${noteContent}\n\n## Mental model\n- Core abstraction:\n`
                           )
                         }
                       >
                         ＋ Mental Model
+                      </button>
+                      <button
+                        type="button"
+                        className="template-btn"
+                        onClick={() =>
+                          handleNoteContentChange(
+                            `${noteContent}\n\n## Worked example\n\`\`\`bash\n# Example command\n\`\`\`\n`
+                          )
+                        }
+                      >
+                        ＋ Worked Example
+                      </button>
+                      <button
+                        type="button"
+                        className="template-btn"
+                        onClick={() =>
+                          handleNoteContentChange(
+                            `${noteContent}\n\n## Pitfalls / debugging\n- Common error:\n  Root cause:\n`
+                          )
+                        }
+                      >
+                        ＋ Pitfall
                       </button>
                       <button
                         type="button"
@@ -745,7 +853,7 @@ export const TopicPage: React.FC = () => {
                       className="note-markdown-textarea"
                       value={noteContent}
                       onChange={(e) => handleNoteContentChange(e.target.value)}
-                      placeholder="Capture mental models, command syntax, pitfalls, and recall questions..."
+                      placeholder="Capture mental models, command syntax, pitfalls, and recall questions from memory..."
                     />
 
                     <div className="editor-footer-status">
@@ -763,7 +871,9 @@ export const TopicPage: React.FC = () => {
           </div>
         )}
 
+        {/* ========================================= */}
         {/* Tab 3: Practice Labs */}
+        {/* ========================================= */}
         {activeTab === 'practice' && (
           <div className="tab-pane-content">
             <Card className="practice-labs-card">
@@ -881,6 +991,201 @@ export const TopicPage: React.FC = () => {
                     </div>
                   )}
                 </div>
+              </CardBody>
+            </Card>
+          </div>
+        )}
+
+        {/* ========================================= */}
+        {/* Tab 4: Resources */}
+        {/* ========================================= */}
+        {activeTab === 'resources' && (
+          <div className="tab-pane-content">
+            <Card className="resources-hub-card">
+              <CardHeader>
+                <div className="card-header-title">
+                  <span className="eyebrow">REFERENCE DOCUMENTATION</span>
+                  <h3>Official Docs &amp; Command References</h3>
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setIsAddResourceModalOpen(true)}
+                  leftIcon="＋"
+                >
+                  Add Resource Link
+                </Button>
+              </CardHeader>
+              <CardBody>
+                {currentTopic.resourceUrls && currentTopic.resourceUrls.length > 0 ? (
+                  <div className="resources-link-list">
+                    {currentTopic.resourceUrls.map((url, idx) => (
+                      <a
+                        key={idx}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="resource-item-anchor"
+                      >
+                        <span className="resource-link-icon">🔗</span>
+                        <div className="resource-link-details">
+                          <strong className="resource-url-text">{url}</strong>
+                          <small>External documentation reference</small>
+                        </div>
+                        <span className="external-arrow-icon">↗</span>
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-resources-box">
+                    <p>No external resource links added for this topic yet.</p>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setIsAddResourceModalOpen(true)}
+                    >
+                      ＋ Add First Reference Link
+                    </Button>
+                  </div>
+                )}
+              </CardBody>
+            </Card>
+          </div>
+        )}
+
+        {/* ========================================= */}
+        {/* Tab 5: Review */}
+        {/* ========================================= */}
+        {activeTab === 'review' && (
+          <div className="tab-pane-content">
+            <Card className="topic-review-card">
+              <CardHeader>
+                <div className="card-header-title">
+                  <span className="eyebrow">ACTIVE RECALL REPETITION</span>
+                  <h3>Self-Assessed Spaced Review</h3>
+                </div>
+                <Badge variant="mastery" mastery={currentTopic.mastery}>
+                  Current: M{currentTopic.mastery}
+                </Badge>
+              </CardHeader>
+
+              <CardBody>
+                {reviewSubmitted ? (
+                  <div className="review-submitted-state">
+                    <span className="celebration-icon">🎉</span>
+                    <h3>Review Session Completed!</h3>
+                    <p>
+                      Your self-assessment has been recorded. Next spaced review is scheduled in{' '}
+                      <strong>{nextReviewDays || 7} days</strong>.
+                    </p>
+                    <div className="review-submitted-actions mt-4">
+                      <Button
+                        variant="secondary"
+                        size="md"
+                        onClick={() => {
+                          setReviewSubmitted(false);
+                          setIsAnswerRevealed(false);
+                        }}
+                      >
+                        Review Again
+                      </Button>
+                      <Link to="/review" className="btn btn-primary btn-md">
+                        View Global Recall Queue →
+                      </Link>
+                    </div>
+                  </div>
+                ) : reviewQuestions.length > 0 ? (
+                  <div className="flashcard-active-session">
+                    <div className="flashcard-progress-counter">
+                      Question {activeQuestionIndex + 1} of {reviewQuestions.length}
+                    </div>
+
+                    <div className="flashcard-question-box">
+                      <span className="question-tag">ACTIVE RECALL PROMPT</span>
+                      <h3 className="question-prompt-text">
+                        {reviewQuestions[activeQuestionIndex].question}
+                      </h3>
+                    </div>
+
+                    {isAnswerRevealed ? (
+                      <div className="flashcard-answer-revealed">
+                        <span className="answer-tag">SUGGESTED ANSWER &amp; MENTAL MODEL</span>
+                        <p className="answer-text">
+                          {reviewQuestions[activeQuestionIndex].suggestedAnswer}
+                        </p>
+
+                        <div className="retention-rating-section mt-6">
+                          <span className="rating-prompt-label">Rate your recall accuracy:</span>
+                          <div className="rating-buttons-grid">
+                            <button
+                              type="button"
+                              disabled={submittingReview}
+                              className="rating-btn btn-again"
+                              onClick={() => handleRateRecall('again')}
+                            >
+                              <strong>Again</strong>
+                              <small>Forgot (1d)</small>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={submittingReview}
+                              className="rating-btn btn-hard"
+                              onClick={() => handleRateRecall('hard')}
+                            >
+                              <strong>Hard</strong>
+                              <small>Struggled (2d)</small>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={submittingReview}
+                              className="rating-btn btn-good"
+                              onClick={() => handleRateRecall('good')}
+                            >
+                              <strong>Good</strong>
+                              <small>Recalled (7d)</small>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={submittingReview}
+                              className="rating-btn btn-easy"
+                              onClick={() => handleRateRecall('easy')}
+                            >
+                              <strong>Easy</strong>
+                              <small>Mastered (21d)</small>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="reveal-answer-dock mt-6">
+                        <p className="dock-hint">
+                          Try answering from memory before revealing the answer.
+                        </p>
+                        <Button
+                          variant="primary"
+                          size="lg"
+                          onClick={() => setIsAnswerRevealed(true)}
+                        >
+                          👁 Reveal Suggested Answer
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="empty-review-state">
+                    <p>No recall questions recorded for this topic yet.</p>
+                    <p className="empty-hint">
+                      Add recall questions in the Smart Notes tab under <code>## Recall questions</code>.
+                    </p>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setActiveTab('notes')}
+                    >
+                      Open Smart Notes Tab →
+                    </Button>
+                  </div>
+                )}
               </CardBody>
             </Card>
           </div>

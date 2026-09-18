@@ -1,4 +1,4 @@
-import type { LearningPath, MasteryLevel, ModuleItem, Note, PracticeTask, ReviewItem, Topic } from '../types';
+import type { LearningPath, MasteryLevel, ModuleItem, Note, PracticeTask, ReviewItem, Topic, StudySessionEvent } from '../types';
 
 let paths: LearningPath[] = [];
 const notes: Note[] = [
@@ -342,6 +342,167 @@ function createLinuxPath(pathId = 'linux-devops'): LearningPath {
 }
 
 paths = [createLinuxPath()];
+
+const getRelativeDateStr = (daysOffset: number): string => {
+  const d = new Date(Date.now() + daysOffset * 86400000);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+let studyEvents: StudySessionEvent[] = [
+  {
+    id: 'evt-1',
+    title: 'Linux Kernel Subsystems & Syscalls',
+    type: 'study_session',
+    date: getRelativeDateStr(0),
+    startTime: '09:00',
+    endTime: '10:00',
+    durationMinutes: 60,
+    pathId: 'linux-devops',
+    pathTitle: 'Linux for DevOps',
+    topicId: 't-linux-1',
+    topicTitle: 'Linux Architecture & Subsystems',
+    completed: false,
+    notes: 'Focus on Ring 0 vs Ring 3 isolation and tracing syscalls with strace.',
+  },
+  {
+    id: 'evt-2',
+    title: 'File Permissions & ACLs Terminal Lab',
+    type: 'practice_lab',
+    date: getRelativeDateStr(0),
+    startTime: '11:30',
+    endTime: '12:30',
+    durationMinutes: 60,
+    pathId: 'linux-devops',
+    pathTitle: 'Linux for DevOps',
+    topicId: 't-linux-4',
+    topicTitle: 'Users, groups and permissions',
+    completed: false,
+    notes: 'Hands-on practice configuring setuid, sticky bit, and POSIX ACLs.',
+  },
+  {
+    id: 'evt-3',
+    title: 'Spaced Recall: Syscall Traps & VFS',
+    type: 'review',
+    date: getRelativeDateStr(0),
+    startTime: '15:00',
+    endTime: '15:45',
+    durationMinutes: 45,
+    pathId: 'linux-devops',
+    pathTitle: 'Linux for DevOps',
+    topicId: 't-linux-1',
+    topicTitle: 'Linux Architecture & Subsystems',
+    completed: false,
+    notes: 'Active retrieval session testing kernel concepts from memory.',
+  },
+  {
+    id: 'evt-4',
+    title: 'Bash CLI Automation Pipelines',
+    type: 'practice_lab',
+    date: getRelativeDateStr(1),
+    startTime: '10:00',
+    endTime: '11:30',
+    durationMinutes: 90,
+    pathId: 'linux-devops',
+    pathTitle: 'Linux for DevOps',
+    topicId: 't-linux-3',
+    topicTitle: 'Shell and command composition',
+    completed: false,
+    notes: 'Build resilient log-parsing pipelines with xargs, awk, and grep.',
+  },
+  {
+    id: 'evt-5',
+    title: 'Process Lifecycle, Signals & Systemd',
+    type: 'study_session',
+    date: getRelativeDateStr(1),
+    startTime: '14:00',
+    endTime: '15:15',
+    durationMinutes: 75,
+    pathId: 'linux-devops',
+    pathTitle: 'Linux for DevOps',
+    topicId: 't-linux-5',
+    topicTitle: 'Processes and signals',
+    completed: false,
+    notes: 'Deep dive into fork/exec models, SIGTERM vs SIGKILL, and unit files.',
+  },
+  {
+    id: 'evt-6',
+    title: 'Storage Mounts, Inodes & VFS Architecture',
+    type: 'study_session',
+    date: getRelativeDateStr(2),
+    startTime: '09:30',
+    endTime: '10:45',
+    durationMinutes: 75,
+    pathId: 'linux-devops',
+    pathTitle: 'Linux for DevOps',
+    topicId: 't-linux-2',
+    topicTitle: 'Filesystem hierarchy',
+    completed: false,
+    notes: 'Investigate ext4 block allocation and inode structure.',
+  },
+  {
+    id: 'evt-7',
+    title: 'Spaced Review: Permission Modes & Sticky Bit',
+    type: 'review',
+    date: getRelativeDateStr(3),
+    startTime: '13:00',
+    endTime: '13:45',
+    durationMinutes: 45,
+    pathId: 'linux-devops',
+    pathTitle: 'Linux for DevOps',
+    topicId: 't-linux-4',
+    topicTitle: 'Users, groups and permissions',
+    completed: false,
+    notes: 'Review recall questions on octal permission calculation.',
+  },
+  {
+    id: 'evt-8',
+    title: 'Linux Core Engineering Milestone Assessment',
+    type: 'milestone',
+    date: getRelativeDateStr(5),
+    startTime: '10:00',
+    endTime: '12:00',
+    durationMinutes: 120,
+    pathId: 'linux-devops',
+    pathTitle: 'Linux for DevOps',
+    topicId: 't-linux-1',
+    topicTitle: 'Linux Architecture & Subsystems',
+    completed: false,
+    notes: 'Comprehensive practical evaluation: troubleshoot production incidents under time constraints.',
+  },
+  {
+    id: 'evt-9',
+    title: 'Filesystem Hierarchy Standard Walkthrough',
+    type: 'study_session',
+    date: getRelativeDateStr(-1),
+    startTime: '14:00',
+    endTime: '15:00',
+    durationMinutes: 60,
+    pathId: 'linux-devops',
+    pathTitle: 'Linux for DevOps',
+    topicId: 't-linux-2',
+    topicTitle: 'Filesystem hierarchy',
+    completed: true,
+    notes: 'Completed mapping of /etc, /var, /proc, and /sys filesystem roles.',
+  },
+  {
+    id: 'evt-10',
+    title: 'Strace Syscall Profiling Lab',
+    type: 'practice_lab',
+    date: getRelativeDateStr(-2),
+    startTime: '11:00',
+    endTime: '12:00',
+    durationMinutes: 60,
+    pathId: 'linux-devops',
+    pathTitle: 'Linux for DevOps',
+    topicId: 't-linux-1',
+    topicTitle: 'Linux Architecture & Subsystems',
+    completed: true,
+    notes: 'Executed strace profiling on webserver startup sequence.',
+  },
+];
 
 function parseBody(options: RequestInit) {
   if (!options.body) return {};
@@ -874,6 +1035,63 @@ export async function mockApi<T = unknown>(path: string, options: RequestInit = 
       totalTasks: tasks.length,
       completedTasks: tasks.filter((t) => t.status === 'done').length,
     } as T;
+  }
+
+  // Calendar Events Endpoints
+  if (pathname === '/calendar/events' && method === 'GET') {
+    return structuredClone(studyEvents) as T;
+  }
+
+  if (pathname === '/calendar/events' && method === 'POST') {
+    const body = parseBody(options) as Partial<StudySessionEvent>;
+    const startTime = body.startTime || '09:00';
+    const durationMinutes = Number(body.durationMinutes) || 60;
+    
+    // Auto calculate endTime if not provided
+    const [h, m] = startTime.split(':').map(Number);
+    const endTotalMins = (h || 9) * 60 + (m || 0) + durationMinutes;
+    const endH = Math.floor(endTotalMins / 60) % 24;
+    const endM = endTotalMins % 60;
+    const calculatedEndTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+
+    const newEvent: StudySessionEvent = {
+      id: `evt-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      title: body.title || 'Untitled Study Session',
+      type: body.type || 'study_session',
+      date: body.date || getRelativeDateStr(0),
+      startTime,
+      endTime: body.endTime || calculatedEndTime,
+      durationMinutes,
+      pathId: body.pathId || '',
+      pathTitle: body.pathTitle || '',
+      topicId: body.topicId || '',
+      topicTitle: body.topicTitle || '',
+      completed: !!body.completed,
+      notes: body.notes || '',
+    };
+
+    studyEvents.push(newEvent);
+    return structuredClone(newEvent) as T;
+  }
+
+  const calEventMatch = pathname.match(/^\/calendar\/events\/([^/]+)$/);
+  if (calEventMatch && method === 'PATCH') {
+    const eventId = calEventMatch[1];
+    const eventIndex = studyEvents.findIndex((e) => e.id === eventId);
+    if (eventIndex === -1) throw new Error('Study session event not found');
+
+    const body = parseBody(options) as Partial<StudySessionEvent>;
+    studyEvents[eventIndex] = {
+      ...studyEvents[eventIndex],
+      ...body,
+    };
+    return structuredClone(studyEvents[eventIndex]) as T;
+  }
+
+  if (calEventMatch && method === 'DELETE') {
+    const eventId = calEventMatch[1];
+    studyEvents = studyEvents.filter((e) => e.id !== eventId);
+    return { success: true } as T;
   }
 
   throw new Error(`Mock endpoint not implemented: ${method} ${path}`);

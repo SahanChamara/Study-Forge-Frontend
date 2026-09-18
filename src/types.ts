@@ -156,3 +156,22 @@ export interface GlobalSearchResult {
   practiceTasks: PracticeTask[];
 }
 
+export type StudyEventType = 'study_session' | 'practice_lab' | 'review' | 'milestone';
+
+export interface StudySessionEvent {
+  id: string;
+  title: string;
+  type: StudyEventType;
+  date: string; // YYYY-MM-DD
+  startTime: string; // HH:MM e.g. "09:00"
+  endTime: string; // HH:MM e.g. "10:15"
+  durationMinutes: number;
+  pathId?: string;
+  pathTitle?: string;
+  topicId?: string;
+  topicTitle?: string;
+  completed?: boolean;
+  notes?: string;
+}
+
+
